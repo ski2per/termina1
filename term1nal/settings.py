@@ -1,7 +1,6 @@
 import logging
 import os.path
 import ssl
-import sys
 
 from tornado.options import define
 from term1nal.policy import (
@@ -47,7 +46,7 @@ Example: --encoding='utf-8' to solve the problem with some switches&routers''')
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FONT_DIR = 'static/css/fonts'
+FONT_DIR = 'static/fonts'
 
 max_body_size = 1 * 1024 * 1024
 
@@ -62,7 +61,8 @@ class Font(object):
         return filename.split('.')[0]
 
     def get_url(self, filename, dirs):
-        return os.path.join(*(dirs + [filename]))
+        print(filename, dirs)
+        return os.path.join(dirs , filename)
 
 
 def get_app_settings(options):
@@ -75,7 +75,7 @@ def get_app_settings(options):
         font=Font(
             get_font_filename(options.font,
                               os.path.join(BASE_DIR, FONT_DIR)),
-            FONT_DIR[1:]
+            FONT_DIR
         ),
         origin_policy=get_origin_setting(options)
     )

@@ -28,7 +28,7 @@ def make_app(handlers, settings):
     return tornado.web.Application(handlers, **settings)
 
 
-def app_listen(app, port, address, server_settings):
+def setup_listening(app, port, address, server_settings):
     app.listen(port, address, **server_settings)
     if not server_settings.get('ssl_options'):
         server_type = 'http'
@@ -42,16 +42,15 @@ def app_listen(app, port, address, server_settings):
 
 def main():
     options.parse_command_line()
-    print(options.encoding)
     check_encoding_setting(options.encoding)
     loop = tornado.ioloop.IOLoop.current()
     app = make_app(make_handlers(loop, options), get_app_settings(options))
     ssl_ctx = get_ssl_context(options)
     server_settings = get_server_settings(options)
-    app_listen(app, options.port, options.address, server_settings)
+    setup_listening(app, options.port, options.address, server_settings)
     if ssl_ctx:
         server_settings.update(ssl_options=ssl_ctx)
-        app_listen(app, options.sslport, options.ssladdress, server_settings)
+        setup_listening(app, options.sslport, options.ssladdress, server_settings)
     loop.start()
 
 

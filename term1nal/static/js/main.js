@@ -201,6 +201,8 @@ jQuery(function($){
     if (!custom_font) {
       console.log('No custom font specified.');
     } else {
+      console.log("#########");
+      console.log(custom_font);
       console.log('Status of custom font ' + custom_font.family + ': ' + custom_font.status);
       if (custom_font.status === 'loaded') {
         return true;
@@ -222,7 +224,12 @@ jQuery(function($){
     }
 
     if (custom_font_is_loaded()) {
-      var new_fonts =  custom_font.family + ', ' + default_fonts;
+      // var new_fonts =  custom_font.family + ', ' + default_fonts;
+      // TEMPORARY SOLUTION
+      var new_fonts =  "Dejavu Sans Mono" + ', ' + default_fonts;
+      console.log("***************");
+      console.log(new_fonts);
+      console.log(typeof(new_fonts));
       term.setOption('fontFamily', new_fonts);
       term.font_family_updated = true;
       console.log('Using custom font family ' + new_fonts);

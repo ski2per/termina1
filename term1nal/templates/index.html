@@ -5,46 +5,15 @@
     <title> Term1nal</title>
     <link href="static/img/favicon.png" rel="icon" type="image/png">
     <link href="static/css/nes.min.css" rel="stylesheet" type="text/css" />
-    <!--<link href="static/css/vuetify.min.css" rel="stylesheet" type="text/css"/>-->
+    <link href="static/css/vuetify.min.css" rel="stylesheet" type="text/css" />
     <link href="static/css/xterm.min.css" rel="stylesheet" type="text/css"/>
     <link href="static/css/fullscreen.min.css" rel="stylesheet" type="text/css"/>
-    <style>
-      .row {
-        margin-top: 15px;
-        margin-bottom: 10px;
-      }
-
-      .container {
-        margin-top: 20px;
-      }
-
-      .btn {
-        margin-top: 15px;
-      }
-
-      .btn-danger {
-        margin-left: 5px;
-      }
-      /*
-      {% if font.family %}
-      @font-face {
-        font-family: '{{ font.family }}';
-        src: url('{{ font.url }}');
-      }
-
-      body {
-        font-family: '{{ font.family }}';
-      }
-      {% end %}
-      */
-    </style>
+    <link href="static/css/style.css" rel="stylesheet" type="text/css"/>
   </head>
   <body>
     <div id="waiter" style="display: none"> Connecting ... </div>
-    <span class="nes-text">abc</span>
 
     <div class="nes-container">
-<!--      <div class="nes-container" style="display: none">-->
       <form id="connect" action="" method="post" enctype="multipart/form-data"{% if debug %} novalidate{% end %}>
         <div class="row">
           <div class="col">
@@ -100,7 +69,7 @@
 
     <script src="static/js/jquery.min.js"></script>
     <script src="static/js/popper.min.js"></script>
-    <script src="static/js/bootstrap.min.js"></script>
+    <!-- <script src="static/js/bootstrap.min.js"></script> -->
     <script src="static/js/xterm.min.js"></script>
     <script src="static/js/xterm-addon-fit.min.js"></script>
     <script src="static/js/main.js"></script>

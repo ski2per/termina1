@@ -1,0 +1,31 @@
+@font-face {
+    font-family: "Press Start 2P";
+    /*src: url("../fonts/PressStart2P-Regular.ttf");*/
+    src: url("../fonts/PressStart2P-Regular.ttf");
+}
+
+@font-face {
+    font-family: "Dejavu Sans Mono";
+    /*src: url("../fonts/PressStart2P-Regular.ttf");*/
+    src: url("../fonts/DejaVuSansMono.ttf");
+}
+/* .row {
+    margin-top: 15px;
+    margin-bottom: 10px;
+}
+
+.container {
+    margin-top: 20px;
+}
+
+.btn {
+    margin-top: 15px;
+}
+
+.btn-danger {
+    margin-left: 5px;
+} */
+
+body {
+    font-family: "Press Start 2P";
+}

@@ -12,22 +12,19 @@ from concurrent.futures import ThreadPoolExecutor
 from tornado.ioloop import IOLoop
 from tornado.options import options
 from tornado.process import cpu_count
-from webssh.utils import (
+from term1nal.utils import (
     is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str,
     to_int, to_ip_address, UnicodeType, is_ip_hostname, is_same_primary_domain,
     is_valid_encoding
 )
-from webssh.worker import Worker, recycle_worker, clients
+from term1nal.worker import Worker, recycle_worker, clients
 
 try:
     from json.decoder import JSONDecodeError
 except ImportError:
     JSONDecodeError = ValueError
 
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
+from urllib.parse import urlparse
 
 
 DELAY = 3
@@ -522,10 +519,10 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         self.write(self.result)
 
 
-class WsockHandler(MixinHandler, tornado.websocket.WebSocketHandler):
+class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
 
     def initialize(self, loop):
-        super(WsockHandler, self).initialize(loop)
+        super(WSHandler, self).initialize(loop)
         self.worker_ref = None
 
     def open(self):

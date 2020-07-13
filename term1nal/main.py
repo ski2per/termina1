@@ -3,9 +3,9 @@ import tornado.web
 import tornado.ioloop
 
 from tornado.options import options
-from webssh import handler
-from webssh.handler import IndexHandler, WsockHandler, NotFoundHandler
-from webssh.settings import (
+from term1nal import handler
+from term1nal.handler import IndexHandler, WSHandler, NotFoundHandler
+from term1nal.settings import (
     get_app_settings,  get_host_keys_settings, get_policy_setting,
     get_ssl_context, get_server_settings, check_encoding_setting
 )
@@ -18,7 +18,7 @@ def make_handlers(loop, options):
     handlers = [
         (r'/', IndexHandler, dict(loop=loop, policy=policy,
                                   host_keys_settings=host_keys_settings)),
-        (r'/ws', WsockHandler, dict(loop=loop))
+        (r'/ws', WSHandler, dict(loop=loop))
     ]
     return handlers
 
@@ -42,6 +42,7 @@ def app_listen(app, port, address, server_settings):
 
 def main():
     options.parse_command_line()
+    print(options.encoding)
     check_encoding_setting(options.encoding)
     loop = tornado.ioloop.IOLoop.current()
     app = make_app(make_handlers(loop, options), get_app_settings(options))

@@ -1,16 +1,8 @@
-import ipaddress
 import re
+import ipaddress
+from urllib.parse import urlparse
 
-try:
-    from types import UnicodeType
-except ImportError:
-    UnicodeType = str
-
-try:
-    from urllib.parse import urlparse
-except ImportError:
-    from urlparse import urlparse
-
+UnicodeType = str
 
 numeric = re.compile(r'[0-9]+$')
 allowed = re.compile(r'(?!-)[a-z0-9-]{1,63}(?<!-)$', re.IGNORECASE)

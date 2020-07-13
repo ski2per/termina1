@@ -4,19 +4,12 @@ import ssl
 import sys
 
 from tornado.options import define
-from webssh.policy import (
+from term1nal.policy import (
     load_host_keys, get_policy_class, check_policy_setting
 )
-from webssh.utils import (
+from term1nal.utils import (
     to_ip_address, parse_origin_from_url, is_valid_encoding
 )
-from webssh._version import __version__
-
-
-def print_version(flag):
-    if flag:
-        print(__version__)
-        sys.exit(0)
 
 
 define('address', default='', help='Listen address')
@@ -51,12 +44,11 @@ define('font', default='', help='custom font filename')
 define('encoding', default='',
        help='''The default character encoding of ssh servers.
 Example: --encoding='utf-8' to solve the problem with some switches&routers''')
-define('version', type=bool, help='Show version information',
-       callback=print_version)
 
 
-base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-font_dirs = ['webssh', 'static', 'css', 'fonts']
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FONT_DIR = 'static/css/fonts'
+
 max_body_size = 1 * 1024 * 1024
 
 
@@ -75,15 +67,15 @@ class Font(object):
 
 def get_app_settings(options):
     settings = dict(
-        template_path=os.path.join(base_dir, 'webssh', 'templates'),
-        static_path=os.path.join(base_dir, 'webssh', 'static'),
+        template_path=os.path.join(BASE_DIR, 'templates'),
+        static_path=os.path.join(BASE_DIR, 'static'),
         websocket_ping_interval=options.wpintvl,
         debug=options.debug,
         xsrf_cookies=options.xsrf,
         font=Font(
             get_font_filename(options.font,
-                              os.path.join(base_dir, *font_dirs)),
-            font_dirs[1:]
+                              os.path.join(BASE_DIR, FONT_DIR)),
+            FONT_DIR[1:]
         ),
         origin_policy=get_origin_setting(options)
     )
@@ -101,7 +93,7 @@ def get_server_settings(options):
 
 def get_host_keys_settings(options):
     if not options.hostfile:
-        host_keys_filename = os.path.join(base_dir, 'known_hosts')
+        host_keys_filename = os.path.join(BASE_DIR, 'known_hosts')
     else:
         host_keys_filename = options.hostfile
     host_keys = load_host_keys(host_keys_filename)

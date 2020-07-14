@@ -72,7 +72,7 @@ class Worker(object):
         else:
             logging.debug('{!r} from {}:{}'.format(data, *self.dst_addr))
             if not data:
-                self.close(reason='chan closed')
+                self.close(reason='Bye ~')
                 return
 
             logging.debug('{!r} to {}:{}'.format(data, *self.handler.src_addr))

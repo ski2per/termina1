@@ -1,7 +1,7 @@
 /*jslint browser:true */
 
 var jQuery;
-var wssh = {};
+var wterm = {};
 
 
 (function() {
@@ -37,14 +37,14 @@ var wssh = {};
 
 jQuery(function($){
   var status = $('#status'),
+      form_id = '#ssh_cred',
       button = $('.btn-primary'),
       form_container = $('.form-container'),
       waiter = $('#waiter'),
       term_type = $('#term'),
       style = {},
-      default_title = 'WebSSH',
+      default_title = '',
       title_element = document.querySelector('title'),
-      form_id = '#connect',
       debug = document.querySelector(form_id).noValidate,
       custom_font = document.fonts ? document.fonts.values().next().value : undefined,
       default_fonts,
@@ -317,9 +317,9 @@ jQuery(function($){
   function reset_wssh() {
     var name;
 
-    for (name in wssh) {
-      if (wssh.hasOwnProperty(name) && name !== 'connect') {
-        delete wssh[name];
+    for (name in wterm) {
+      if (wterm.hasOwnProperty(name) && name !== 'connect') {
+        delete wterm[name];
       }
     }
   }
@@ -418,7 +418,7 @@ jQuery(function($){
       }
     }
 
-    wssh.set_encoding = set_encoding;
+    wterm.set_encoding = set_encoding;
 
     if (url_opts_data.encoding) {
       if (set_encoding(url_opts_data.encoding) === false) {
@@ -429,13 +429,13 @@ jQuery(function($){
     }
 
 
-    wssh.geometry = function() {
+    wterm.geometry = function() {
       // for console use
       var geometry = current_geometry(term);
       console.log('Current window geometry: ' + JSON.stringify(geometry));
     };
 
-    wssh.send = function(data) {
+    wterm.send = function(data) {
       // for console use
       if (!sock) {
         console.log('Websocket was already closed');
@@ -456,7 +456,7 @@ jQuery(function($){
       }
     };
 
-    wssh.reset_encoding = function() {
+    wterm.reset_encoding = function() {
       // for console use
       if (encoding === msg.encoding) {
         console.log('Already reset to ' + msg.encoding);
@@ -465,7 +465,7 @@ jQuery(function($){
       }
     };
 
-    wssh.resize = function(cols, rows) {
+    wterm.resize = function(cols, rows) {
       // for console use
       if (term === undefined) {
         console.log('Terminal was already destroryed');
@@ -488,15 +488,15 @@ jQuery(function($){
       }
     };
 
-    wssh.set_bgcolor = function(color) {
+    wterm.set_bgcolor = function(color) {
       set_backgound_color(term, color);
     };
 
-    wssh.custom_font = function() {
+    wterm.custom_font = function() {
       update_font_family(term);
     };
 
-    wssh.default_font = function() {
+    wterm.default_font = function() {
       reset_font_family(term);
     };
 
@@ -775,7 +775,7 @@ jQuery(function($){
     }
   }
 
-  wssh.connect = connect;
+  wterm.connect = connect;
 
   $(form_id).submit(function(event){
     event.preventDefault();
@@ -801,7 +801,7 @@ jQuery(function($){
 
     try {
       event_origin = event.origin;
-      wssh[prop].apply(wssh, args);
+      wterm[prop].apply(wterm, args);
     } finally {
       event_origin = undefined;
     }

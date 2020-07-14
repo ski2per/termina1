@@ -13,59 +13,78 @@
   <body>
     <div id="waiter" style="display: none"> Connecting ... </div>
 
-    <div class="nes-container">
-      <form id="connect" action="" method="post" enctype="multipart/form-data"{% if debug %} novalidate{% end %}>
-        <div class="row">
-          <div class="col">
-            <label for="Hostname"><span class="nes-text is-primary">Hostname</span></label>
-            <input class="nes-input" type="text" id="hostname" name="hostname" value="" required>
-          </div>
-          <div class="col">
-            <label for="Port">Port</label>
-            <input class="nes-input" type="number" id="port" name="port" placeholder="22" value="" min=1 max=65535>
-          </div>
+
+    <div class="row">
+      <div class="col">
+        <div class="nes-container with-title">
+          <p class="title">Bookmarks</p>
+          <ul>
+            <li><span class="nes-text is-primary"><a href="http://172.16.10.100:9090">Pormetheus</a></span></li>
+            <li><span class="nes-text is-primary"><a href="http://172.16.10.100:9091">Push Gateway</a></span></li>
+            <li><span class="nes-text is-primary"><a href="http://172.16.10.100:5000">Netswatch Topo</a></span></li>
+          </ul>
         </div>
-        <div class="row">
-          <div class="col">
-            <label for="Username">Username</label>
-            <input class="nes-input" type="text" id="username" name="username" value="" required>
-          </div>
-          <div class="col">
-            <label for="Password">Password</label>
-            <input class="nes-input" type="password" id="password" name="password" value="">
-          </div>
+
+      </div><!-- Left Column -->
+
+      <div class="col">
+        <div class="nes-container with-title">
+          <p class="title">To Telecom IDC</p>
+          <form id="ssh_cred" action="" method="post" enctype="multipart/form-data"{% if debug %} novalidate{% end %}>
+            <div class="row">
+              <div class="col">
+                <label for="Hostname">Hostname</label>
+                <input class="nes-input" type="text" id="hostname" name="hostname" value="" required>
+              </div>
+              <div class="col">
+                <label for="Port">Port</label>
+                <input class="nes-input" type="number" id="port" name="port" placeholder="22" value="" min=1 max=65535>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col">
+                <label for="Username">Username</label>
+                <input class="nes-input" type="text" id="username" name="username" value="" required>
+              </div>
+              <div class="col">
+                <label for="Password">Password</label>
+                <input class="nes-input" type="password" id="password" name="password" value="">
+              </div>
+            </div>
+              <!--
+            <div class="row">
+              <div class="col">
+                <label for="Username">Private Key</label>
+                <input class="form-control" type="file" id="privatekey" name="privatekey" value="">
+              </div>
+              <div class="col">
+                <label for="Passphrase">Passphrase</label>
+                <input class="form-control" type="password" id="passphrase" name="passphrase" value="">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col">
+                <label for="totp">Totp (time-based one-time password)</label>
+                <input class="form-control" type="password" id="totp" name="totp" value="">
+              </div>
+              <div class="col">
+              </div>
+            </div>
+            -->
+            <input type="hidden" id="term" name="term" value="xterm-256color">
+            {% module xsrf_form_html() %}
+            <button type="submit" class="nes-btn is-primary">Connect</button>
+            <button type="reset" class="nes-btn is-error">Reset</button>
+          </form>
         </div>
-          <!--
-        <div class="row">
-          <div class="col">
-            <label for="Username">Private Key</label>
-            <input class="form-control" type="file" id="privatekey" name="privatekey" value="">
-          </div>
-          <div class="col">
-            <label for="Passphrase">Passphrase</label>
-            <input class="form-control" type="password" id="passphrase" name="passphrase" value="">
-          </div>
+        <div class="container">
+          <div id="status" style="color: red;"></div>
+          <div id="terminal"></div>
         </div>
-        <div class="row">
-          <div class="col">
-            <label for="totp">Totp (time-based one-time password)</label>
-            <input class="form-control" type="password" id="totp" name="totp" value="">
-          </div>
-          <div class="col">
-          </div>
-        </div>
-        -->
-        <input type="hidden" id="term" name="term" value="xterm-256color">
-        {% module xsrf_form_html() %}
-        <button type="submit" class="nes-btn is-primary">Connect</button>
-        <button type="reset" class="nes-btn is-error">Reset</button>
-      </form>
+      </div> <!-- Right Column -->
+
     </div>
 
-    <div class="container">
-      <div id="status" style="color: red;"></div>
-      <div id="terminal"></div>
-    </div>
 
     <script src="static/js/jquery.min.js"></script>
     <script src="static/js/popper.min.js"></script>

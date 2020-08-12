@@ -5,9 +5,9 @@
 }
 
 @font-face {
-    font-family: "Dejavu Sans Mono";
+    font-family: "Hack";
     /*src: url("../fonts/PressStart2P-Regular.ttf");*/
-    src: url("../fonts/DejaVuSansMono.ttf");
+    src: url("../fonts/Hack-Regular.ttf");
 }
 
 /* .row {

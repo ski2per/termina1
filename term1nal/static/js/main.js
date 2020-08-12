@@ -90,7 +90,7 @@ jQuery(function($){
   }
 
 
-  function populate_form(data) {
+  function populateForm(data) {
     var names = form_keys.concat(['passphrase']),
         i, name;
 
@@ -101,7 +101,7 @@ jQuery(function($){
   }
 
 
-  function get_object_length(object) {
+  function getObjectLength(object) {
     return Object.keys(object).length;
   }
 
@@ -169,7 +169,7 @@ jQuery(function($){
   }
 
 
-  function current_geometry(term) {
+  function currentGeometry(term) {
     if (!style.width || !style.height) {
       try {
         getCellSize(term);
@@ -185,12 +185,12 @@ jQuery(function($){
 
 
   function resizeTerminal(term) {
-    var geometry = current_geometry(term);
+    var geometry = currentGeometry(term);
     term.on_resize(geometry.cols, geometry.rows);
   }
 
 
-  function set_backgound_color(term, color) {
+  function setBackgoundColor(term, color) {
     term.setOption('theme', {
       background: color
     });
@@ -214,7 +214,7 @@ jQuery(function($){
     }
   }
 
-  function update_font_family(term) {
+  function updateFontFamily(term) {
     if (term.font_family_updated) {
       console.log('Already using custom font family');
       return;
@@ -315,7 +315,7 @@ jQuery(function($){
   }
 
 
-  function reset_wssh() {
+  function resetWssh() {
     var name;
 
     for (name in wterm) {
@@ -326,12 +326,12 @@ jQuery(function($){
   }
 
 
-  function log_status(text, to_populate) {
+  function logStatus(text, to_populate) {
     console.log(text);
     status.html(text.split('\n').join('<br/>'));
 
     if (to_populate && validated_form_data) {
-      populate_form(validated_form_data);
+      populateForm(validated_form_data);
       validated_form_data = undefined;
     }
 
@@ -349,14 +349,14 @@ jQuery(function($){
     button.prop('disabled', false);
 
     if (resp.status !== 200) {
-      log_status(resp.status + ': ' + resp.statusText, true);
+      logStatus(resp.status + ': ' + resp.statusText, true);
       state = DISCONNECTED;
       return;
     }
 
     var msg = resp.responseJSON;
     if (!msg.id) {
-      log_status(msg.status, true);
+      logStatus(msg.status, true);
       state = DISCONNECTED;
       return;
     }
@@ -386,7 +386,7 @@ jQuery(function($){
       console.log('The deault encoding of your server is ' + msg.encoding);
     }
 
-    function term_write(text) {
+    function termWrite(text) {
       if (term) {
         term.write(text);
         if (!term.resized) {
@@ -396,7 +396,7 @@ jQuery(function($){
       }
     }
 
-    function set_encoding(new_encoding) {
+    function setEncoding(new_encoding) {
       // for console use
       if (!new_encoding) {
         console.log('An encoding is required');
@@ -419,20 +419,20 @@ jQuery(function($){
       }
     }
 
-    wterm.set_encoding = set_encoding;
+    wterm.setEncoding = setEncoding;
 
     if (url_opts_data.encoding) {
-      if (set_encoding(url_opts_data.encoding) === false) {
-        set_encoding(msg.encoding);
+      if (setEncoding(url_opts_data.encoding) === false) {
+        setEncoding(msg.encoding);
       }
     } else {
-      set_encoding(msg.encoding);
+      setEncoding(msg.encoding);
     }
 
 
     wterm.geometry = function() {
       // for console use
-      var geometry = current_geometry(term);
+      var geometry = currentGeometry(term);
       console.log('Current window geometry: ' + JSON.stringify(geometry));
     };
 
@@ -462,7 +462,7 @@ jQuery(function($){
       if (encoding === msg.encoding) {
         console.log('Already reset to ' + msg.encoding);
       } else {
-        set_encoding(msg.encoding);
+        setEncoding(msg.encoding);
       }
     };
 
@@ -476,7 +476,7 @@ jQuery(function($){
       var valid_args = false;
 
       if (cols > 0 && rows > 0)  {
-        var geometry = current_geometry(term);
+        var geometry = currentGeometry(term);
         if (cols <= geometry.cols && rows <= geometry.rows) {
           valid_args = true;
         }
@@ -490,11 +490,11 @@ jQuery(function($){
     };
 
     wterm.set_bgcolor = function(color) {
-      set_backgound_color(term, color);
+      setBackgoundColor(term, color);
     };
 
     wterm.custom_font = function() {
-      update_font_family(term);
+      updateFontFamily(term);
     };
 
     wterm.default_font = function() {
@@ -517,7 +517,7 @@ jQuery(function($){
     sock.onopen = function() {
       term.open(terminal);
       toggleFullscreen(term);
-      update_font_family(term);
+      updateFontFamily(term);
       term.focus();
       state = CONNECTED;
       title_element.text = url_opts_data.title || default_title;
@@ -529,7 +529,7 @@ jQuery(function($){
     };
 
     sock.onmessage = function(msg) {
-      read_file_as_text(msg.data, term_write, decoder);
+      read_file_as_text(msg.data, termWrite, decoder);
     };
 
     sock.onerror = function(e) {
@@ -540,8 +540,8 @@ jQuery(function($){
       term.dispose();
       term = undefined;
       sock = undefined;
-      reset_wssh();
-      log_status(e.reason, true);
+      resetWssh();
+      logStatus(e.reason, true);
       state = DISCONNECTED;
       default_title = 'Term1nal';
       title_element.text = default_title;
@@ -570,7 +570,7 @@ jQuery(function($){
   }
 
 
-  function clean_data(data) {
+  function cleanData(data) {
     var i, attr, val;
     var attrs = form_keys.concat(['privatekey', 'passphrase']);
 
@@ -584,8 +584,8 @@ jQuery(function($){
   }
 
 
-  function validate_form_data(data) {
-    clean_data(data);
+  function validateFormData(data) {
+    cleanData(data);
 
     var hostname = data.get('hostname'),
         port = data.get('port'),
@@ -683,16 +683,16 @@ jQuery(function($){
       });
     }
 
-    var result = validate_form_data(data);
+    var result = validateFormData(data);
     if (!result.valid) {
-      log_status(result.errors.join('\n'));
+      logStatus(result.errors.join('\n'));
       return;
     }
 
     if (pk && pk.size && !debug) {
       read_file_as_text(pk, function(text) {
         if (text === undefined) {
-            log_status('Invalid private key: ' + pk.name);
+            logStatus('Invalid private key: ' + pk.name);
         } else {
           ajax_post();
         }
@@ -711,9 +711,9 @@ jQuery(function($){
         url = data.url || form.action,
         _xsrf = form.querySelector('input[name="_xsrf"]');
 
-    var result = validate_form_data(wrap_object(data));
+    var result = validateFormData(wrap_object(data));
     if (!result.valid) {
-      log_status(result.errors.join('\n'));
+      logStatus(result.errors.join('\n'));
       return;
     }
 
@@ -833,9 +833,9 @@ jQuery(function($){
   }
 
   if (url_form_data.password === null) {
-    log_status('Password via url must be encoded in base64.');
+    logStatus('Password via url must be encoded in base64.');
   } else {
-    if (get_object_length(url_form_data)) {
+    if (getObjectLength(url_form_data)) {
       waiter.show();
       connect(url_form_data);
     } else {

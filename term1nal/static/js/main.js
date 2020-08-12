@@ -64,7 +64,7 @@ jQuery(function($){
       hostname_tester = /((^\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\s*$)|(^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*$))|(^\s*((?=.{1,255}$)(?=.*[A-Za-z].*)[0-9A-Za-z](?:(?:[0-9A-Za-z]|\b-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|\b-){0,61}[0-9A-Za-z])?)*)\s*$)/;
 
 
-  function store_items(names, data) {
+  function storeItems(names, data) {
     var i, name, value;
 
     for (i = 0; i < names.length; i++) {
@@ -77,7 +77,7 @@ jQuery(function($){
   }
 
 
-  function restore_items(names) {
+  function restoreItems(names) {
     var i, name, value;
 
     for (i=0; i < names.length; i++) {
@@ -148,7 +148,7 @@ jQuery(function($){
   }
 
 
-  function parse_xterm_style() {
+  function parseXtermStyle() {
     var text = $('.xterm-helpers style').text();
     var arr = text.split('xterm-normal-char{width:');
     style.width = parseFloat(arr[1]);
@@ -157,13 +157,13 @@ jQuery(function($){
   }
 
 
-  function get_cell_size(term) {
+  function getCellSize(term) {
     style.width = term._core._renderService._renderer.dimensions.actualCellWidth;
     style.height = term._core._renderService._renderer.dimensions.actualCellHeight;
   }
 
 
-  function toggle_fullscreen(term) {
+  function toggleFullscreen(term) {
     $('#terminal .terminal').toggleClass('fullscreen');
     term.fitAddon.fit();
   }
@@ -172,9 +172,9 @@ jQuery(function($){
   function current_geometry(term) {
     if (!style.width || !style.height) {
       try {
-        get_cell_size(term);
+        getCellSize(term);
       } catch (TypeError) {
-        parse_xterm_style();
+        parseXtermStyle();
       }
     }
 
@@ -184,7 +184,7 @@ jQuery(function($){
   }
 
 
-  function resize_terminal(term) {
+  function resizeTerminal(term) {
     var geometry = current_geometry(term);
     term.on_resize(geometry.cols, geometry.rows);
   }
@@ -197,7 +197,7 @@ jQuery(function($){
   }
 
 
-  function custom_font_is_loaded() {
+  function isCustomFontLoaded() {
     console.log(custom_font)
     if (!custom_font) {
       console.log('No custom font specified.');
@@ -224,10 +224,10 @@ jQuery(function($){
       default_fonts = term.getOption('fontFamily');
     }
 
-    if (custom_font_is_loaded()) {
+    if (isCustomFontLoaded()) {
        var new_fonts =  custom_font.family + ', ' + default_fonts;
       // TEMPORARY SOLUTION
-      var new_fonts =  "Dejavu Sans Mono" + ', ' + default_fonts;
+      var new_fonts =  "Hack" + ', ' + default_fonts;
       console.log("***************");
       console.log(new_fonts);
       console.log(typeof(new_fonts));
@@ -390,7 +390,7 @@ jQuery(function($){
       if (term) {
         term.write(text);
         if (!term.resized) {
-          resize_terminal(term);
+          resizeTerminal(term);
           term.resized = true;
         }
       }
@@ -516,7 +516,7 @@ jQuery(function($){
 
     sock.onopen = function() {
       term.open(terminal);
-      toggle_fullscreen(term);
+      toggleFullscreen(term);
       update_font_family(term);
       term.focus();
       state = CONNECTED;
@@ -549,7 +549,7 @@ jQuery(function($){
 
     $(window).resize(function(){
       if (term) {
-        resize_terminal(term);
+        resizeTerminal(term);
       }
     });
   }
@@ -772,7 +772,7 @@ jQuery(function($){
       if (hostname) {
         validated_form_data = result.data;
       }
-      store_items(fields, result.data);
+      storeItems(fields, result.data);
     }
   }
 
@@ -813,7 +813,7 @@ jQuery(function($){
   if (document.fonts) {
     document.fonts.ready.then(
       function () {
-        if (custom_font_is_loaded() === false) {
+        if (isCustomFontLoaded() === false) {
           document.body.style.fontFamily = custom_font.family;
         }
       }
@@ -839,7 +839,7 @@ jQuery(function($){
       waiter.show();
       connect(url_form_data);
     } else {
-      restore_items(fields);
+      restoreItems(fields);
       form_container.show();
     }
   }

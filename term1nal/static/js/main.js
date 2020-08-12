@@ -198,6 +198,7 @@ jQuery(function($){
 
 
   function custom_font_is_loaded() {
+    console.log(custom_font)
     if (!custom_font) {
       console.log('No custom font specified.');
     } else {
@@ -224,7 +225,7 @@ jQuery(function($){
     }
 
     if (custom_font_is_loaded()) {
-      // var new_fonts =  custom_font.family + ', ' + default_fonts;
+       var new_fonts =  custom_font.family + ', ' + default_fonts;
       // TEMPORARY SOLUTION
       var new_fonts =  "Dejavu Sans Mono" + ', ' + default_fonts;
       console.log("***************");

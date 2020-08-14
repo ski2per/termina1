@@ -12,11 +12,8 @@ from concurrent.futures import ThreadPoolExecutor
 from tornado.ioloop import IOLoop
 from tornado.options import options
 from tornado.process import cpu_count
-from term1nal.utils import (
-    is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str,
-    to_int, to_ip_address, UnicodeType, is_ip_hostname, is_same_primary_domain,
-    is_valid_encoding
-)
+from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, to_int, \
+    to_ip_address, UnicodeType, is_ip_hostname, is_same_primary_domain, is_valid_encoding
 from term1nal.worker import Worker, recycle_worker, clients
 
 try:
@@ -25,7 +22,6 @@ except ImportError:
     JSONDecodeError = ValueError
 
 from urllib.parse import urlparse
-
 
 DELAY = 3
 DEFAULT_PORT = 22
@@ -99,7 +95,6 @@ class SSHClient(paramiko.SSHClient):
 
 
 class PrivateKey(object):
-
     max_length = 16384  # rough number
 
     tag_to_name = {
@@ -141,7 +136,7 @@ class PrivateKey(object):
         logging.debug('Reset offset to {}.'.format(offset))
 
         logging.debug('Try parsing it as {} type key'.format(name))
-        pkeycls = getattr(paramiko, name+'Key')
+        pkeycls = getattr(paramiko, name + 'Key')
         pkey = None
 
         try:
@@ -177,12 +172,11 @@ class PrivateKey(object):
         msg = 'Invalid key'
         if self.password:
             msg += ' or wrong passphrase "{}" for decrypting it.'.format(
-                    self.password)
+                self.password)
         raise InvalidValueError(msg)
 
 
 class MixinHandler(object):
-
     custom_headers = {
         'Server': 'TornadoServer'
     }
@@ -311,8 +305,7 @@ class NotFoundHandler(MixinHandler, tornado.web.ErrorHandler):
 
 
 class IndexHandler(MixinHandler, tornado.web.RequestHandler):
-
-    executor = ThreadPoolExecutor(max_workers=cpu_count()*5)
+    executor = ThreadPoolExecutor(max_workers=cpu_count() * 5)
 
     def initialize(self, loop, policy, host_keys_settings):
         super(IndexHandler, self).initialize(loop)
@@ -381,9 +374,9 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         if self.ssh_client._system_host_keys.lookup(key) is None:
             if self.ssh_client._host_keys.lookup(key) is None:
                 raise tornado.web.HTTPError(
-                        403, 'Connection to {}:{} is not allowed.'.format(
-                            hostname, port)
-                    )
+                    403, 'Connection to {}:{} is not allowed.'.format(
+                        hostname, port)
+                )
 
     def get_args(self):
         hostname = self.get_hostname()

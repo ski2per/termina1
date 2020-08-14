@@ -3,12 +3,8 @@ import os.path
 import ssl
 
 from tornado.options import define
-from term1nal.policy import (
-    load_host_keys, get_policy_class, check_policy_setting
-)
-from term1nal.utils import (
-    to_ip_address, parse_origin_from_url, is_valid_encoding
-)
+from term1nal.policy import load_host_keys, get_policy_class, check_policy_setting
+from term1nal.utils import to_ip_address, parse_origin_from_url, is_valid_encoding
 
 
 define('address', default='', help='Listen address')
@@ -39,44 +35,44 @@ define('timeout', type=int, default=3, help='SSH connection timeout')
 define('delay', type=int, default=0, help='The delay to call recycle_worker')
 define('maxconn', type=int, default=20,
        help='Maximum live connections (ssh sessions) per client')
-define('font', default='', help='custom font filename')
+# define('font', default='', help='custom font filename')
 define('encoding', default='',
        help='''The default character encoding of ssh servers.
 Example: --encoding='utf-8' to solve the problem with some switches&routers''')
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FONT_DIR = 'static/fonts'
+FONT_DIR = '../static/fonts'
 
 max_body_size = 1 * 1024 * 1024
 
 
-class Font(object):
-
-    def __init__(self, filename, dirs):
-        self.family = self.get_family(filename)
-        self.url = self.get_url(filename, dirs)
-
-    def get_family(self, filename):
-        return filename.split('.')[0]
-
-    def get_url(self, filename, dirs):
-        print(filename, dirs)
-        return os.path.join(dirs , filename)
+# class Font(object):
+#
+#     def __init__(self, filename, dirs):
+#         self.family = self.get_family(filename)
+#         self.url = self.get_url(filename, dirs)
+#
+#     def get_family(self, filename):
+#         return filename.split('.')[0]
+#
+#     def get_url(self, filename, dirs):
+#         print(filename, dirs)
+#         return os.path.join(dirs , filename)
 
 
 def get_app_settings(options):
     settings = dict(
-        template_path=os.path.join(BASE_DIR, 'templates'),
-        static_path=os.path.join(BASE_DIR, 'static'),
+        # template_path=os.path.join(BASE_DIR, 'templates'),
+        # static_path=os.path.join(BASE_DIR, 'static'),
         websocket_ping_interval=options.wpintvl,
         debug=options.debug,
         xsrf_cookies=options.xsrf,
-        font=Font(
-            get_font_filename(options.font,
-                              os.path.join(BASE_DIR, FONT_DIR)),
-            FONT_DIR
-        ),
+        # font=Font(
+        #     get_font_filename(options.font,
+        #                       os.path.join(BASE_DIR, FONT_DIR)),
+        #     FONT_DIR
+        # ),
         origin_policy=get_origin_setting(options)
     )
     return settings
@@ -181,10 +177,6 @@ def get_font_filename(font, font_dir):
             )
     elif filenames:
         font = filenames.pop()
-
-    print("---")
-    print(font)
-    return font
 
 
 def check_encoding_setting(encoding):

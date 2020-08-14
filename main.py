@@ -10,7 +10,6 @@ from term1nal.settings import get_app_settings, get_host_keys_settings, get_poli
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# options.parse_command_line()
 options.define("base_dir", BASE_DIR)
 check_encoding_setting(options.encoding)
 
@@ -28,24 +27,11 @@ class Term1nal(tornado.web.Application):
 
         settings =  get_app_settings(options)
 
-        # template_path=os.path.join(BASE_DIR, 'templates'),
-        # static_path=os.path.join(BASE_DIR, 'static'),
         settings["template_path"] = os.path.join(BASE_DIR, 'templates')
         settings["static_path"] = os.path.join(BASE_DIR, 'static')
 
         super().__init__(handlers, **settings)
 
-
-# def make_handlers(loop, options):
-#     host_keys_settings = get_host_keys_settings(options)
-#     policy = get_policy_setting(options, host_keys_settings)
-#
-#     handlers = [
-#         (r'/', IndexHandler, dict(loop=loop, policy=policy,
-#                                   host_keys_settings=host_keys_settings)),
-#         (r'/ws', WSHandler, dict(loop=loop))
-#     ]
-#     return handlers
 
 
 def setup_listening(app, port, address, server_settings):

@@ -41,9 +41,6 @@ define('encoding', default='',
 Example: --encoding='utf-8' to solve the problem with some switches&routers''')
 
 
-# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-FONT_DIR = '../static/fonts'
-
 max_body_size = 1 * 1024 * 1024
 
 
@@ -144,18 +141,6 @@ def get_origin_setting(options):
         raise ValueError('Empty origin list')
 
     return origins
-
-
-def get_font_filename(font, font_dir):
-    filenames = {f for f in os.listdir(font_dir) if not f.startswith('.')
-                 and os.path.isfile(os.path.join(font_dir, f))}
-    if font:
-        if font not in filenames:
-            raise ValueError(
-                'Font file {!r} not found'.format(os.path.join(font_dir, font))
-            )
-    elif filenames:
-        font = filenames.pop()
 
 
 def check_encoding_setting(encoding):

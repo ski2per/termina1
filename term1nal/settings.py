@@ -182,6 +182,8 @@ def get_font_filename(font, font_dir):
     elif filenames:
         font = filenames.pop()
 
+    print("---")
+    print(font)
     return font
 
 

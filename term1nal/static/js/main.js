@@ -89,7 +89,6 @@ jQuery(function($){
     }
   }
 
-
   function populateForm(data) {
     var names = form_keys.concat(['passphrase']),
         i, name;
@@ -100,11 +99,9 @@ jQuery(function($){
     }
   }
 
-
   function getObjectLength(object) {
     return Object.keys(object).length;
   }
-
 
   function decode_uri(uri) {
     try {
@@ -115,7 +112,6 @@ jQuery(function($){
     return '';
   }
 
-
   function decode_password(encoded) {
     try {
       return window.atob(encoded);
@@ -124,7 +120,6 @@ jQuery(function($){
     }
     return null;
   }
-
 
   function parse_url_data(string, form_keys, opts_keys, form_map, opts_map) {
     var i, pair, key, val,
@@ -147,7 +142,6 @@ jQuery(function($){
     }
   }
 
-
   function parseXtermStyle() {
     var text = $('.xterm-helpers style').text();
     var arr = text.split('xterm-normal-char{width:');
@@ -156,12 +150,10 @@ jQuery(function($){
     style.height = parseFloat(arr[1]);
   }
 
-
   function getCellSize(term) {
     style.width = term._core._renderService._renderer.dimensions.actualCellWidth;
     style.height = term._core._renderService._renderer.dimensions.actualCellHeight;
   }
-
 
   function toggleFullscreen(term) {
     $('#terminal .terminal').toggleClass('fullscreen');
@@ -183,12 +175,10 @@ jQuery(function($){
     return {'cols': cols, 'rows': rows};
   }
 
-
   function resizeTerminal(term) {
     var geometry = currentGeometry(term);
     term.on_resize(geometry.cols, geometry.rows);
   }
-
 
   function setBackgoundColor(term, color) {
     term.setOption('theme', {
@@ -196,14 +186,10 @@ jQuery(function($){
     });
   }
 
-
   function isCustomFontLoaded() {
-    console.log(custom_font)
     if (!custom_font) {
       console.log('No custom font specified.');
     } else {
-      console.log("#########");
-      console.log(custom_font);
       console.log('Status of custom font ' + custom_font.family + ': ' + custom_font.status);
       if (custom_font.status === 'loaded') {
         return true;
@@ -226,17 +212,12 @@ jQuery(function($){
 
     if (isCustomFontLoaded()) {
        var new_fonts =  custom_font.family + ', ' + default_fonts;
-      // TEMPORARY SOLUTION
       var new_fonts =  "Hack" + ', ' + default_fonts;
-      console.log("***************");
-      console.log(new_fonts);
-      console.log(typeof(new_fonts));
       term.setOption('fontFamily', new_fonts);
       term.font_family_updated = true;
       console.log('Using custom font family ' + new_fonts);
     }
   }
-
 
   function reset_font_family(term) {
     if (!term.font_family_updated) {
@@ -251,11 +232,9 @@ jQuery(function($){
     }
   }
 
-
   function format_geometry(cols, rows) {
     return JSON.stringify({'cols': cols, 'rows': rows});
   }
-
 
   function read_as_text_with_decoder(file, callback, decoder) {
     var reader = new window.FileReader();
@@ -284,7 +263,6 @@ jQuery(function($){
     reader.readAsArrayBuffer(file);
   }
 
-
   function read_as_text_with_encoding(file, callback, encoding) {
     var reader = new window.FileReader();
 
@@ -305,7 +283,6 @@ jQuery(function($){
     reader.readAsText(file, encoding);
   }
 
-
   function read_file_as_text(file, callback, decoder) {
     if (!window.TextDecoder) {
       read_as_text_with_encoding(file, callback, decoder);
@@ -313,7 +290,6 @@ jQuery(function($){
       read_as_text_with_decoder(file, callback, decoder);
     }
   }
-
 
   function resetWssh() {
     var name;
@@ -324,7 +300,6 @@ jQuery(function($){
       }
     }
   }
-
 
   function logStatus(text, to_populate) {
     console.log(text);
@@ -343,7 +318,6 @@ jQuery(function($){
       form_container.show();
     }
   }
-
 
   function ajax_complete_callback(resp) {
     button.prop('disabled', false);
@@ -554,7 +528,6 @@ jQuery(function($){
     });
   }
 
-
   function wrap_object(opts) {
     var obj = {};
 
@@ -569,7 +542,6 @@ jQuery(function($){
     return obj;
   }
 
-
   function cleanData(data) {
     var i, attr, val;
     var attrs = form_keys.concat(['privatekey', 'passphrase']);
@@ -582,7 +554,6 @@ jQuery(function($){
       }
     }
   }
-
 
   function validateFormData(data) {
     cleanData(data);
@@ -646,7 +617,6 @@ jQuery(function($){
     }
   }
 
-
   function enable_file_inputs(inputs) {
     var i;
 
@@ -654,7 +624,6 @@ jQuery(function($){
       inputs[i].removeAttribute('disabled');
     }
   }
-
 
   function connect_without_options() {
     // use data from the form
@@ -704,7 +673,6 @@ jQuery(function($){
     return result;
   }
 
-
   function connect_with_options(data) {
     // use data from the arguments
     var form = document.querySelector(form_id),
@@ -735,7 +703,6 @@ jQuery(function($){
 
     return result;
   }
-
 
   function connect(hostname, port, username, password, privatekey, passphrase, totp) {
     // for console use
@@ -783,7 +750,6 @@ jQuery(function($){
     connect();
   });
 
-
   function cross_origin_connect(event)
   {
     console.log(event.origin);
@@ -825,8 +791,6 @@ jQuery(function($){
     decode_uri(window.location.search.substring(1)) + '&' + decode_uri(window.location.hash.substring(1)),
     form_keys, opts_keys, url_form_data, url_opts_data
   );
-  // console.log(url_form_data);
-  // console.log(url_opts_data);
 
   if (url_opts_data.term) {
     term_type.val(url_opts_data.term);

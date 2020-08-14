@@ -10,7 +10,8 @@ from term1nal.settings import get_app_settings, get_host_keys_settings, get_poli
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-options.parse_command_line()
+# options.parse_command_line()
+options.define("base_dir", BASE_DIR)
 check_encoding_setting(options.encoding)
 
 

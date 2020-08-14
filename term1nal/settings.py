@@ -41,38 +41,17 @@ define('encoding', default='',
 Example: --encoding='utf-8' to solve the problem with some switches&routers''')
 
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 FONT_DIR = '../static/fonts'
 
 max_body_size = 1 * 1024 * 1024
 
 
-# class Font(object):
-#
-#     def __init__(self, filename, dirs):
-#         self.family = self.get_family(filename)
-#         self.url = self.get_url(filename, dirs)
-#
-#     def get_family(self, filename):
-#         return filename.split('.')[0]
-#
-#     def get_url(self, filename, dirs):
-#         print(filename, dirs)
-#         return os.path.join(dirs , filename)
-
-
 def get_app_settings(options):
     settings = dict(
-        # template_path=os.path.join(BASE_DIR, 'templates'),
-        # static_path=os.path.join(BASE_DIR, 'static'),
         websocket_ping_interval=options.wpintvl,
         debug=options.debug,
         xsrf_cookies=options.xsrf,
-        # font=Font(
-        #     get_font_filename(options.font,
-        #                       os.path.join(BASE_DIR, FONT_DIR)),
-        #     FONT_DIR
-        # ),
         origin_policy=get_origin_setting(options)
     )
     return settings
@@ -89,7 +68,7 @@ def get_server_settings(options):
 
 def get_host_keys_settings(options):
     if not options.hostfile:
-        host_keys_filename = os.path.join(BASE_DIR, 'known_hosts')
+        host_keys_filename = os.path.join(options.base_dir, 'known_hosts')
     else:
         host_keys_filename = options.hostfile
     host_keys = load_host_keys(host_keys_filename)

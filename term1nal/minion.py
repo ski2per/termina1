@@ -5,31 +5,11 @@ from tornado.ioloop import IOLoop
 from tornado.iostream import _ERRNO_CONNRESET
 from tornado.util import errno_from_exception
 
-
-BUF_SIZE = 32 * 1024
-clients = {}    # {ip: {id: worker}}
-
-
-def clear_worker(worker, clients):
-    ip = worker.src_addr[0]
-    workers = clients.get(ip)
-    assert worker.id in workers
-    workers.pop(worker.id)
-
-    if not workers:
-        clients.pop(ip)
-        if not clients:
-            clients.clear()
+BUFFER_SIZE = 64 * 1024
+clients = {}  # {ip: {id: minion}}
 
 
-def recycle_worker(worker):
-    if worker.handler:
-        return
-    logging.warning('Recycling worker {}'.format(worker.id))
-    worker.close(reason='worker recycled')
-
-
-class Worker(object):
+class Minion:
     def __init__(self, loop, ssh, chan, dst_addr):
         self.loop = loop
         self.ssh = ssh
@@ -48,7 +28,7 @@ class Worker(object):
         if events & IOLoop.WRITE:
             self.on_write()
         if events & IOLoop.ERROR:
-            self.close(reason='error event occurred')
+            self.close(reason='ioloop error')
 
     def set_handler(self, handler):
         if not self.handler:
@@ -62,9 +42,9 @@ class Worker(object):
             self.loop.call_later(0.1, self, self.fd, IOLoop.WRITE)
 
     def on_read(self):
-        logging.debug('worker {} on read'.format(self.id))
+        logging.debug('minion {} on read'.format(self.id))
         try:
-            data = self.chan.recv(BUF_SIZE)
+            data = self.chan.recv(BUFFER_SIZE)
         except (OSError, IOError) as e:
             logging.error(e)
             if errno_from_exception(e) in _ERRNO_CONNRESET:
@@ -82,7 +62,7 @@ class Worker(object):
                 self.close(reason='websocket closed')
 
     def on_write(self):
-        logging.debug('worker {} on write'.format(self.id))
+        logging.debug('minion {} on write'.format(self.id))
         if not self.data_to_dst:
             return
 
@@ -112,7 +92,7 @@ class Worker(object):
         self.closed = True
 
         logging.info(
-            'Closing worker {} with reason: {}'.format(self.id, reason)
+            'Closing minion {} with reason: {}'.format(self.id, reason)
         )
         if self.handler:
             self.loop.remove_handler(self.fd)
@@ -121,5 +101,24 @@ class Worker(object):
         self.ssh.close()
         logging.info('Connection to {}:{} lost'.format(*self.dst_addr))
 
-        clear_worker(self, clients)
+        clear_minion(self, clients)
         logging.debug(clients)
+
+
+def clear_minion(minion, clients):
+    ip = minion.src_addr[0]
+    minions = clients.get(ip)
+    assert minion.id in minions
+    minions.pop(minion.id)
+
+    if not minions:
+        clients.pop(ip)
+        if not clients:
+            clients.clear()
+
+
+def recycle_minion(minion):
+    if minion.handler:
+        return
+    logging.warning('Recycling minion {}'.format(minion.id))
+    minion.close(reason='minion recycled')

@@ -14,7 +14,7 @@ from tornado.process import cpu_count
 from term1nal.conf import conf
 from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, to_int, \
      UnicodeType, is_same_primary_domain, is_valid_encoding
-from term1nal.worker import Worker, recycle_worker, clients
+from term1nal.minion import Minion, recycle_minion, clients
 
 try:
     from json.decoder import JSONDecodeError
@@ -195,7 +195,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         term = self.get_argument('term', u'') or u'xterm'
         shell_channel = ssh.invoke_shell(term=term)
         shell_channel.setblocking(0)
-        worker = Worker(self.loop, ssh, shell_channel, dst_addr)
+        worker = Minion(self.loop, ssh, shell_channel, dst_addr)
         worker.encoding = conf.encoding if conf.encoding else self.get_default_encoding(ssh)
         return worker
 
@@ -232,7 +232,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
                 clients[ip] = workers
             worker.src_addr = (ip, port)
             workers[worker.id] = worker
-            self.loop.call_later(conf.delay or DELAY, recycle_worker,
+            self.loop.call_later(conf.delay or DELAY, recycle_minion,
                                  worker)
             self.result.update(id=worker.id, encoding=worker.encoding)
 

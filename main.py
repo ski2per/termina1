@@ -5,7 +5,7 @@ import tornado.ioloop
 from term1nal import handlers
 from term1nal.conf import conf
 from term1nal.handlers import IndexHandler, WSHandler, UploadHandler
-from term1nal.conf import get_ssl_context, check_encoding_setting
+from term1nal.utils import get_ssl_context, check_encoding_setting
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 conf.base_dir = BASE_DIR

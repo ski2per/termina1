@@ -36,175 +36,35 @@ class InvalidValueError(Exception):
 
 class SSHClient(paramiko.SSHClient):
 
-    def handler(self, title, instructions, prompt_list):
+    def handler(self, prompt_list):
         answers = []
         for prompt_, _ in prompt_list:
             prompt = prompt_.strip().lower()
             if prompt.startswith('password'):
                 answers.append(self.password)
-            elif prompt.startswith('verification'):
-                answers.append(self.totp)
             else:
                 raise ValueError('Unknown prompt: {}'.format(prompt_))
         return answers
 
     def auth_interactive(self, username, handler):
-        if not self.totp:
-            raise ValueError('Need a verification code for 2fa.')
         self._transport.auth_interactive(username, handler)
 
     def _auth(self, username, password, pkey, *args):
         self.password = password
-        saved_exception = None
-        two_factor = False
-        allowed_types = set()
-        two_factor_types = {'keyboard-interactive', 'password'}
-
-        if pkey is not None:
-            logging.info('Trying publickey authentication')
-            try:
-                allowed_types = set(
-                    self._transport.auth_publickey(username, pkey)
-                )
-                two_factor = allowed_types & two_factor_types
-                if not two_factor:
-                    return
-            except paramiko.SSHException as e:
-                saved_exception = e
-
-        if two_factor:
-            logging.info('Trying publickey 2fa')
-            return self.auth_interactive(username, self.handler)
-
-        if password is not None:
-            logging.info('Trying password authentication')
-            try:
-                self._transport.auth_password(username, password)
-                return
-            except paramiko.SSHException as e:
-                saved_exception = e
-                allowed_types = set(getattr(e, 'allowed_types', []))
-                two_factor = allowed_types & two_factor_types
-
-        if two_factor:
-            logging.info('Trying password 2fa')
-            return self.auth_interactive(username, self.handler)
-
-        assert saved_exception is not None
-        raise saved_exception
-
-
-class PrivateKey:
-    max_length = 16384  # rough number
-
-    tag_to_name = {
-        'RSA': 'RSA',
-        'DSA': 'DSS',
-        'EC': 'ECDSA',
-        'OPENSSH': 'Ed25519'
-    }
-
-    def __init__(self, privatekey, password=None, filename=''):
-        self.privatekey = privatekey
-        self.filename = filename
-        self.password = password
-        self.check_length()
-        self.iostr = io.StringIO(privatekey)
-        self.last_exception = None
-
-    def check_length(self):
-        if len(self.privatekey) > self.max_length:
-            raise InvalidValueError('Invalid key length.')
-
-    def parse_name(self, iostr, tag_to_name):
-        name = None
-        for line_ in iostr:
-            line = line_.strip()
-            if line and line.startswith('-----BEGIN ') and \
-                    line.endswith(' PRIVATE KEY-----'):
-                lst = line.split(' ')
-                if len(lst) == 4:
-                    tag = lst[1]
-                    if tag:
-                        name = tag_to_name.get(tag)
-                        if name:
-                            break
-        return name, len(line_)
-
-    def get_specific_pkey(self, name, offset, password):
-        self.iostr.seek(offset)
-        logging.debug('Reset offset to {}.'.format(offset))
-
-        logging.debug('Try parsing it as {} type key'.format(name))
-        pkeycls = getattr(paramiko, name + 'Key')
-        pkey = None
-
+        logging.info('Trying password authentication')
         try:
-            pkey = pkeycls.from_private_key(self.iostr, password=password)
-        except paramiko.PasswordRequiredException:
-            raise InvalidValueError('Need a passphrase to decrypt the key.')
-        except (paramiko.SSHException, ValueError) as exc:
-            self.last_exception = exc
-            logging.debug(str(exc))
-
-        return pkey
-
-    def get_pkey_obj(self):
-        logging.info('Parsing private key {!r}'.format(self.filename))
-        name, length = self.parse_name(self.iostr, self.tag_to_name)
-        if not name:
-            raise InvalidValueError('Invalid key {}.'.format(self.filename))
-
-        offset = self.iostr.tell() - length
-        password = to_bytes(self.password) if self.password else None
-        pkey = self.get_specific_pkey(name, offset, password)
-
-        if pkey is None and name == 'Ed25519':
-            for name in ['RSA', 'ECDSA', 'DSS']:
-                pkey = self.get_specific_pkey(name, offset, password)
-                if pkey:
-                    break
-
-        if pkey:
-            return pkey
-
-        logging.error(str(self.last_exception))
-        msg = 'Invalid key'
-        if self.password:
-            msg += ' or wrong passphrase "{}" for decrypting it.'.format(
-                self.password)
-        raise InvalidValueError(msg)
+            self._transport.auth_password(username, password)
+            return
+        except paramiko.SSHException as e:
+            saved_exception = e
+            assert saved_exception is not None
+            raise saved_exception
 
 
 class MixinHandler:
-    custom_headers = {
-        'Server': 'TornadoServer'
-    }
-
-    html = ('<html><head><title>{code} {reason}</title></head><body>{code} '
-            '{reason}</body></html>')
-
-    def check_origin(self, origin):
-        if self.origin_policy == '*':
-            return True
-
-        parsed_origin = urlparse(origin)
-        netloc = parsed_origin.netloc.lower()
-        logging.debug('netloc: {}'.format(netloc))
-
-        host = self.request.headers.get('Host')
-        logging.debug('host: {}'.format(host))
-
-        if netloc == host:
-            return True
-
-        if self.origin_policy == 'same':
-            return False
-        elif self.origin_policy == 'primary':
-            return is_same_primary_domain(netloc.rsplit(':', 1)[0],
-                                          host.rsplit(':', 1)[0])
-        else:
-            return origin in self.origin_policy
+    def initialize(self, loop):
+        self.context = self.request.connection.context
+        self.loop = loop
 
     def get_value(self, name):
         value = self.get_argument(name)
@@ -212,7 +72,7 @@ class MixinHandler:
             raise InvalidValueError('Missing value {}'.format(name))
         return value
 
-    def get_client_endpoint(self):
+    def get_client_endpoint(self) -> set:
         print(f"!!!!!!!!!: {type(self.context.address)}")
         print(self.context.address)
 
@@ -221,27 +81,22 @@ class MixinHandler:
     def get_real_client_addr(self):
         ip = self.request.remote_ip
 
-        if ip == self.request.headers.get('X-Real-Ip'):
-            port = self.request.headers.get('X-Real-Port')
-        elif ip in self.request.headers.get('X-Forwarded-For', ''):
-            port = self.request.headers.get('X-Forwarded-Port')
+        if ip == self.request.headers.get("X-Real-Ip"):
+            port = self.request.headers.get("X-Real-Port")
+        elif ip in self.request.headers.get("X-Forwarded-For", ""):
+            port = self.request.headers.get("X-Forwarded-Port")
         else:
-            # not running behind an nginx server
             return
-        port = to_int(port)
-
-        return (ip, port)
-
+        port = int(port)
+        return ip, port
 
 
 class IndexHandler(MixinHandler, tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=cpu_count() * 5)
 
     def initialize(self, loop):
-        super(IndexHandler, self).initialize()
-        self.context = self.request.connection.context
+        super(IndexHandler, self).initialize(loop=loop)
         print(f"@@@@@@@ IDX connection.context: {self.context.address}")
-        self.loop = loop
         self.origin_policy = self.settings.get('origin_policy')
         self.ssh_client = self.get_ssh_client()
         self.debug = self.settings.get('debug', False)
@@ -266,21 +121,6 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         ssh.set_missing_host_key_policy(paramiko.client.WarningPolicy)
         return ssh
 
-    def get_privatekey(self):
-        name = 'privatekey'
-        lst = self.request.files.get(name)
-        if lst:
-            # multipart form
-            filename = lst[0]['filename']
-            data = lst[0]['body']
-            value = self.decode_argument(data, name=name).strip()
-        else:
-            # urlencoded form
-            value = self.get_argument(name, u'')
-            filename = ''
-
-        return value, filename
-
     def get_hostname(self):
         value = self.get_value('hostname')
         if not (is_valid_hostname(value) or is_valid_ip_address(value)):
@@ -292,42 +132,18 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         if not value:
             return DEFAULT_PORT
 
-        port = to_int(value)
+        port = int(value)
         if port is None or not is_valid_port(port):
             raise InvalidValueError('Invalid port: {}'.format(value))
         return port
-
-    def lookup_hostname(self, hostname, port):
-        key = hostname if port == 22 else '[{}]:{}'.format(hostname, port)
-
-        if self.ssh_client._system_host_keys.lookup(key) is None:
-            if self.ssh_client._host_keys.lookup(key) is None:
-                raise tornado.web.HTTPError(
-                    403, 'Connection to {}:{} is not allowed.'.format(
-                        hostname, port)
-                )
 
     def get_args(self):
         hostname = self.get_hostname()
         port = self.get_port()
         username = self.get_value('username')
         password = self.get_argument('password', u'')
-        privatekey, filename = self.get_privatekey()
-        passphrase = self.get_argument('passphrase', u'')
-        totp = self.get_argument('totp', u'')
-
-        # if isinstance(self.policy, paramiko.RejectPolicy):
-        #     self.lookup_hostname(hostname, port)
-
-        if privatekey:
-            pkey = PrivateKey(privatekey, passphrase, filename).get_pkey_obj()
-        else:
-            pkey = None
-
-        self.ssh_client.totp = totp
-        args = (hostname, port, username, password, pkey)
+        args = (hostname, port, username, password)
         logging.debug(args)
-
         return args
 
     def parse_encoding(self, data):
@@ -377,53 +193,11 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
             raise ValueError('Bad host key.')
 
         term = self.get_argument('term', u'') or u'xterm'
-        chan = ssh.invoke_shell(term=term)
-        chan.setblocking(0)
-        worker = Worker(self.loop, ssh, chan, dst_addr)
-        worker.encoding = conf.encoding if conf.encoding else \
-            self.get_default_encoding(ssh)
+        shell_channel = ssh.invoke_shell(term=term)
+        shell_channel.setblocking(0)
+        worker = Worker(self.loop, ssh, shell_channel, dst_addr)
+        worker.encoding = conf.encoding if conf.encoding else self.get_default_encoding(ssh)
         return worker
-
-    def _check_origin(self, origin):
-        if self.origin_policy == '*':
-            return True
-
-        parsed_origin = urlparse(origin)
-        netloc = parsed_origin.netloc.lower()
-        logging.debug('netloc: {}'.format(netloc))
-
-        host = self.request.headers.get('Host')
-        logging.debug('host: {}'.format(host))
-
-        if netloc == host:
-            return True
-
-        if self.origin_policy == 'same':
-            return False
-        elif self.origin_policy == 'primary':
-            return is_same_primary_domain(netloc.rsplit(':', 1)[0],
-                                          host.rsplit(':', 1)[0])
-        else:
-            return origin in self.origin_policy
-
-    # def check_origin(self):
-    #     return True
-        # event_origin = self.get_argument('_origin', u'')
-        # header_origin = self.request.headers.get('Origin')
-        # origin = event_origin or header_origin
-        #
-        # if origin:
-        #     # if not super(IndexHandler, self).check_origin(origin):
-        #     if not self._check_origin(origin):
-        #         raise tornado.web.HTTPError(
-        #             403, 'Cross origin operation is not allowed.'
-        #         )
-        #
-        #     if not event_origin and self.origin_policy != 'same':
-        #         self.set_header('Access-Control-Allow-Origin', origin)
-
-    def head(self):
-        pass
 
     def get(self):
         self.render('index.html', debug=self.debug, font=self.font)
@@ -468,11 +242,8 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
 
     def initialize(self, loop):
-        super(WSHandler, self).initialize()
-        self.origin_policy = self.settings.get('origin_policy')
-        self.context = self.request.connection.context
+        super(WSHandler, self).initialize(loop=loop)
         print(f"@@@@@@@ WS connection.context: {self.context.address}")
-        self.loop = loop
         self.worker_ref = None
 
     def open(self):

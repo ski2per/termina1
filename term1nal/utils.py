@@ -1,8 +1,5 @@
 import re
-import threading
 import ipaddress
-import paramiko
-import logging
 from urllib.parse import urlparse
 
 UnicodeType = str
@@ -139,3 +136,24 @@ def parse_origin_from_url(url):
 
     return '{}://{}'.format(scheme, netloc)
 
+
+def get_ssl_context(options):
+    if not options.cert_file and not options.key_file:
+        return None
+    elif not options.cert_file:
+        raise ValueError('cert_file is not provided')
+    elif not options.key_file:
+        raise ValueError('key_file is not provided')
+    elif not os.path.isfile(options.cert_file):
+        raise ValueError('File {!r} does not exist'.format(options.cert_file))
+    elif not os.path.isfile(options.key_file):
+        raise ValueError('File {!r} does not exist'.format(options.key_file))
+    else:
+        ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+        ssl_ctx.load_cert_chain(options.cert_file, options.key_file)
+        return ssl_ctx
+
+
+def check_encoding_setting(encoding):
+    if encoding and not is_valid_encoding(encoding):
+        raise ValueError('Unknown character encoding {!r}.'.format(encoding))

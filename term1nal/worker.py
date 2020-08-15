@@ -7,7 +7,7 @@ from tornado.util import errno_from_exception
 
 
 BUF_SIZE = 32 * 1024
-clients = {}  # {ip: {id: worker}}
+clients = {}    # {ip: {id: worker}}
 
 
 def clear_worker(worker, clients):

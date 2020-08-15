@@ -37,15 +37,17 @@ var wterm = {};
 
 jQuery(function($){
   var status = $('#status'),
-      form_id = '#ssh_cred',
+      formID = '#ssh_cred',
       button = $('.btn-primary'),
       form_container = $('.form-container'),
-      waiter = $('#waiter'),
+      toolbar = $('#toolbar'),
+      progress = $("#progress"),
+      // upload = $("#uploader"),
       term_type = $('#term'),
       style = {},
       default_title = '',
       title_element = document.querySelector('title'),
-      debug = document.querySelector(form_id).noValidate,
+      debug = document.querySelector(formID).noValidate,
       custom_font = document.fonts ? document.fonts.values().next().value : undefined,
       default_fonts,
       DISCONNECTED = 0,
@@ -62,6 +64,9 @@ jQuery(function($){
       validated_form_data,
       event_origin,
       hostname_tester = /((^\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\s*$)|(^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*$))|(^\s*((?=.{1,255}$)(?=.*[A-Za-z].*)[0-9A-Za-z](?:(?:[0-9A-Za-z]|\b-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|\b-){0,61}[0-9A-Za-z])?)*)\s*$)/;
+
+  console.log("======================================")
+  toolbar.hide()
 
 
   function storeItems(names, data) {
@@ -157,6 +162,7 @@ jQuery(function($){
 
   function toggleFullscreen(term) {
     $('#terminal .terminal').toggleClass('fullscreen');
+    $('#toolbar .toolbar').toggleClass('fullscreen');
     term.fitAddon.fit();
   }
 
@@ -308,10 +314,6 @@ jQuery(function($){
     if (to_populate && validated_form_data) {
       populateForm(validated_form_data);
       validated_form_data = undefined;
-    }
-
-    if (waiter.css('display') !== 'none') {
-      waiter.hide();
     }
 
     if (form_container.css('display') === 'none') {
@@ -489,6 +491,10 @@ jQuery(function($){
     });
 
     sock.onopen = function() {
+      // Show toolbar
+      toolbar.show();
+      progress.hide();
+
       term.open(terminal);
       toggleFullscreen(term);
       updateFontFamily(term);
@@ -511,6 +517,9 @@ jQuery(function($){
     };
 
     sock.onclose = function(e) {
+      // Hide toolbar again
+      toolbar.hide()
+
       term.dispose();
       term = undefined;
       sock = undefined;
@@ -627,7 +636,7 @@ jQuery(function($){
 
   function connect_without_options() {
     // use data from the form
-    var form = document.querySelector(form_id),
+    var form = document.querySelector(formID),
         inputs = form.querySelectorAll('input[type="file"]'),
         url = form.action,
         data, pk;
@@ -675,7 +684,7 @@ jQuery(function($){
 
   function connect_with_options(data) {
     // use data from the arguments
-    var form = document.querySelector(form_id),
+    var form = document.querySelector(formID),
         url = data.url || form.action,
         _xsrf = form.querySelector('input[name="_xsrf"]');
 
@@ -745,10 +754,55 @@ jQuery(function($){
 
   wterm.connect = connect;
 
-  $(form_id).submit(function(event){
+  $(formID).submit(function(event){
     event.preventDefault();
     connect();
   });
+
+  $("#upload").change(function(){
+    var file = this.files[0]
+    console.log(typeof(file))
+    console.log("shiiiiiiiiiiiiiiit")
+    console.log(file.name)
+    console.log(file.size)
+    console.log(file.type)
+
+    var formData = new FormData()
+    formData.append("upload", file)
+
+    $.ajax({
+      url: '/upload',
+      type: "POST",
+      data: formData,
+      cache: false,
+      contentType: false,
+      processData: false,
+      timeout: 60000,
+
+      xhr: function() {
+        var theXHR = $.ajaxSettings.xhr();
+        if(theXHR.upload) {
+          progress.show();
+          theXHR.upload.addEventListener('progress', function(e){
+            if(e.lengthComputable){
+              percent = Math.ceil(e.loaded / e.total * 100);
+              console.log(percent);
+              $(progress).attr("value", percent);
+            }
+          }, false);
+        }
+        return theXHR;
+      },
+      success: function(data) {
+        progress.hide()
+        console.log("uploaded")
+      },
+      error: function(error) {
+        progress.hide()
+        console.log(error)
+      }
+    }); //.ajax()
+  }); //change()
 
   function cross_origin_connect(event)
   {
@@ -786,7 +840,6 @@ jQuery(function($){
     );
   }
 
-
   parse_url_data(
     decode_uri(window.location.search.substring(1)) + '&' + decode_uri(window.location.hash.substring(1)),
     form_keys, opts_keys, url_form_data, url_opts_data
@@ -800,7 +853,6 @@ jQuery(function($){
     logStatus('Password via url must be encoded in base64.');
   } else {
     if (getObjectLength(url_form_data)) {
-      waiter.show();
       connect(url_form_data);
     } else {
       restoreItems(fields);

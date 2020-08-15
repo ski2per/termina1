@@ -28,6 +28,45 @@
 } */
 
 body {
+    padding-top: 10px;
+    padding-right: 10px;
+    padding-left: 10px;
     font-family: "Press Start 2P";
     /* font-family: "Hack"; */
 }
+
+.xterm.fullscreen {
+    position:fixed;
+    top:100px;
+    bottom:0;
+    left:0;
+    right:0;
+    width:auto;
+    height:auto;
+    z-index:255;
+}
+
+
+#toolbar {
+    position:fixed;
+    top: 0px;
+    bottom:0;
+    left:0;
+    right:10px;
+    width:auto;
+    height:100px;
+    z-index:255;
+    background-color: black;
+}
+
+#toolbar label {
+    top: 10px;
+    left: 10px;
+}
+
+#progress {
+    margin-top: 10px;
+    margin-left: 20px;
+    /* background-color: white; */
+}
+

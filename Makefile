@@ -1,4 +1,4 @@
-#.PHONY: clean push
+#.PHONY: test e2e-test cover gofmt gofmt-fix header-check clean tar.gz docker-push release docker-push-all flannel-git
 
 # Registry used for publishing images
 REGISTRY?=docker.cetcxl.local/terminal

@@ -10,10 +10,10 @@ import tornado.web
 
 from concurrent.futures import ThreadPoolExecutor
 from tornado.ioloop import IOLoop
-from tornado.options import options
 from tornado.process import cpu_count
+from term1nal.conf import conf
 from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, to_int, \
-    to_ip_address, UnicodeType, is_ip_hostname, is_same_primary_domain, is_valid_encoding
+     UnicodeType, is_same_primary_domain, is_valid_encoding
 from term1nal.worker import Worker, recycle_worker, clients
 
 try:
@@ -94,7 +94,7 @@ class SSHClient(paramiko.SSHClient):
         raise saved_exception
 
 
-class PrivateKey(object):
+class PrivateKey:
     max_length = 16384  # rough number
 
     tag_to_name = {
@@ -176,35 +176,13 @@ class PrivateKey(object):
         raise InvalidValueError(msg)
 
 
-class MixinHandler(object):
+class MixinHandler:
     custom_headers = {
         'Server': 'TornadoServer'
     }
 
     html = ('<html><head><title>{code} {reason}</title></head><body>{code} '
             '{reason}</body></html>')
-
-    def initialize(self, loop=None):
-        self.check_request()
-        self.loop = loop
-        self.origin_policy = self.settings.get('origin_policy')
-
-    def check_request(self):
-        context = self.request.connection.context
-        result = self.is_forbidden(context, self.request.host_name)
-        self._transforms = []
-        if result:
-            self.set_status(403)
-            self.finish(
-                self.html.format(code=self._status_code, reason=self._reason)
-            )
-        elif result is False:
-            to_url = self.get_redirect_url(
-                self.request.host_name, options.sslport, self.request.uri
-            )
-            self.redirect(to_url, permanent=True)
-        else:
-            self.context = context
 
     def check_origin(self, origin):
         if self.origin_policy == '*':
@@ -228,38 +206,6 @@ class MixinHandler(object):
         else:
             return origin in self.origin_policy
 
-    def is_forbidden(self, context, hostname):
-        ip = context.address[0]
-        lst = context.trusted_downstream
-        ip_address = None
-
-        if lst and ip not in lst:
-            logging.warning(
-                'IP {!r} not found in trusted downstream {!r}'.format(ip, lst)
-            )
-            return True
-
-        if context._orig_protocol == 'http':
-            if redirecting and not is_ip_hostname(hostname):
-                ip_address = to_ip_address(ip)
-                if not ip_address.is_private:
-                    # redirecting
-                    return False
-
-            if options.fbidhttp:
-                if ip_address is None:
-                    ip_address = to_ip_address(ip)
-                if not ip_address.is_private:
-                    logging.warning('Public plain http request is forbidden.')
-                    return True
-
-    def get_redirect_url(self, hostname, port, uri):
-        port = '' if port == 443 else ':%s' % port
-        return 'https://{}{}{}'.format(hostname, port, uri)
-
-    def set_default_headers(self):
-        for header in self.custom_headers.items():
-            self.set_header(*header)
 
     def get_value(self, name):
         value = self.get_argument(name)
@@ -267,14 +213,10 @@ class MixinHandler(object):
             raise InvalidValueError('Missing value {}'.format(name))
         return value
 
-    def get_context_addr(self):
-        return self.context.address[:2]
-
-    def get_client_addr(self):
-        if options.xheaders:
-            return self.get_real_client_addr() or self.get_context_addr()
-        else:
-            return self.get_context_addr()
+    def get_client_endpoint(self):
+        print(f"!!!!!!!!!: {type(self.context.address)}")
+        print(self.context.address)
+        return self.get_real_client_addr() or self.context.address
 
     def get_real_client_addr(self):
         ip = self.request.remote_ip
@@ -286,11 +228,7 @@ class MixinHandler(object):
         else:
             # not running behind an nginx server
             return
-
         port = to_int(port)
-        if port is None or not is_valid_port(port):
-            # fake port
-            port = 65535
 
         return (ip, port)
 
@@ -308,7 +246,11 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=cpu_count() * 5)
 
     def initialize(self, loop, policy, host_keys_settings):
-        super(IndexHandler, self).initialize(loop)
+        super(IndexHandler, self).initialize()
+        self.context = self.request.connection.context
+        print(f"@@@@@@@ IDX connection.context: {self.context.address}")
+        self.loop = loop
+        self.origin_policy = self.settings.get('origin_policy')
         self.policy = policy
         self.host_keys_settings = host_keys_settings
         self.ssh_client = self.get_ssh_client()
@@ -331,9 +273,9 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
     def get_ssh_client(self):
         ssh = SSHClient()
-        ssh._system_host_keys = self.host_keys_settings['system_host_keys']
-        ssh._host_keys = self.host_keys_settings['host_keys']
-        ssh._host_keys_filename = self.host_keys_settings['host_keys_filename']
+        # ssh._system_host_keys = self.host_keys_settings['system_host_keys']
+        # ssh._host_keys = self.host_keys_settings['host_keys']
+        # ssh._host_keys_filename = self.host_keys_settings['host_keys_filename']
         ssh.set_missing_host_key_policy(self.policy)
         return ssh
 
@@ -437,7 +379,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         logging.info('Connecting to {}:{}'.format(*dst_addr))
 
         try:
-            ssh.connect(*args, timeout=options.timeout)
+            ssh.connect(*args, timeout=conf.timeout)
         except socket.error:
             raise ValueError('Unable to connect to {}:{}'.format(*dst_addr))
         except paramiko.BadAuthenticationType:
@@ -451,23 +393,47 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         chan = ssh.invoke_shell(term=term)
         chan.setblocking(0)
         worker = Worker(self.loop, ssh, chan, dst_addr)
-        worker.encoding = options.encoding if options.encoding else \
+        worker.encoding = conf.encoding if conf.encoding else \
             self.get_default_encoding(ssh)
         return worker
 
-    def check_origin(self):
-        event_origin = self.get_argument('_origin', u'')
-        header_origin = self.request.headers.get('Origin')
-        origin = event_origin or header_origin
+    def _check_origin(self, origin):
+        if self.origin_policy == '*':
+            return True
 
-        if origin:
-            if not super(IndexHandler, self).check_origin(origin):
-                raise tornado.web.HTTPError(
-                    403, 'Cross origin operation is not allowed.'
-                )
+        parsed_origin = urlparse(origin)
+        netloc = parsed_origin.netloc.lower()
+        logging.debug('netloc: {}'.format(netloc))
 
-            if not event_origin and self.origin_policy != 'same':
-                self.set_header('Access-Control-Allow-Origin', origin)
+        host = self.request.headers.get('Host')
+        logging.debug('host: {}'.format(host))
+
+        if netloc == host:
+            return True
+
+        if self.origin_policy == 'same':
+            return False
+        elif self.origin_policy == 'primary':
+            return is_same_primary_domain(netloc.rsplit(':', 1)[0],
+                                          host.rsplit(':', 1)[0])
+        else:
+            return origin in self.origin_policy
+
+    # def check_origin(self):
+    #     return True
+        # event_origin = self.get_argument('_origin', u'')
+        # header_origin = self.request.headers.get('Origin')
+        # origin = event_origin or header_origin
+        #
+        # if origin:
+        #     # if not super(IndexHandler, self).check_origin(origin):
+        #     if not self._check_origin(origin):
+        #         raise tornado.web.HTTPError(
+        #             403, 'Cross origin operation is not allowed.'
+        #         )
+        #
+        #     if not event_origin and self.origin_policy != 'same':
+        #         self.set_header('Access-Control-Allow-Origin', origin)
 
     def head(self):
         pass
@@ -481,12 +447,12 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
             # for testing purpose only
             raise ValueError('Uncaught exception')
 
-        ip, port = self.get_client_addr()
+        ip, port = self.get_client_endpoint()
         workers = clients.get(ip, {})
-        if workers and len(workers) >= options.maxconn:
+        if workers and len(workers) >= conf.max_conn:
             raise tornado.web.HTTPError(403, 'Too many live connections.')
 
-        self.check_origin()
+        # self.check_origin()
 
         try:
             args = self.get_args()
@@ -505,7 +471,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
                 clients[ip] = workers
             worker.src_addr = (ip, port)
             workers[worker.id] = worker
-            self.loop.call_later(options.delay or DELAY, recycle_worker,
+            self.loop.call_later(conf.delay or DELAY, recycle_worker,
                                  worker)
             self.result.update(id=worker.id, encoding=worker.encoding)
 
@@ -515,11 +481,15 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
 
     def initialize(self, loop):
-        super(WSHandler, self).initialize(loop)
+        super(WSHandler, self).initialize()
+        self.origin_policy = self.settings.get('origin_policy')
+        self.context = self.request.connection.context
+        print(f"@@@@@@@ WS connection.context: {self.context.address}")
+        self.loop = loop
         self.worker_ref = None
 
     def open(self):
-        self.src_addr = self.get_client_addr()
+        self.src_addr = self.get_client_endpoint()
         logging.info('Connected from {}:{}'.format(*self.src_addr))
 
         workers = clients.get(self.src_addr[0])
@@ -529,6 +499,8 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
 
         try:
             worker_id = self.get_value('id')
+            print(f"############ worker id: {worker_id}")
+
         except (tornado.web.MissingArgumentError, InvalidValueError) as exc:
             self.close(reason=str(exc))
         else:
@@ -573,3 +545,18 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
         worker = self.worker_ref() if self.worker_ref else None
         if worker:
             worker.close(reason=self.close_reason)
+
+
+class UploadHandler(tornado.web.RequestHandler):
+    def initialize(self):
+        print(self.request.connection.context.address)
+
+    def post(self):
+        file = self.request.files["upload"][0]
+        original_filename = file["filename"]
+        print(original_filename)
+        with open(f"/tmp/{original_filename}", "wb") as f:
+            f.write(file["body"])
+        self.finish(f"file {original_filename} is uploaded")
+        # self.finish(original_filename)
+

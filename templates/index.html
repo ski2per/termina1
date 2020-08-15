@@ -7,26 +7,11 @@
     <link href="static/css/nes.min.css" rel="stylesheet" type="text/css" />
     <link href="static/css/vuetify.min.css" rel="stylesheet" type="text/css" />
     <link href="static/css/xterm.min.css" rel="stylesheet" type="text/css"/>
-    <link href="static/css/fullscreen.min.css" rel="stylesheet" type="text/css"/>
     <link href="static/css/style.css" rel="stylesheet" type="text/css"/>
   </head>
   <body>
     <div id="waiter" style="display: none"> Connecting ... </div>
-
-
     <div class="row">
-      <!--
-      <div class="col">
-        <div class="nes-container with-title">
-          <p class="title">Bookmarks</p>
-          <ul>
-            <li><span class="nes-text is-primary"><a href="http://172.16.10.100:9090">Pormetheus</a></span></li>
-            <li><span class="nes-text is-primary"><a href="http://172.16.10.100:9091">Push Gateway</a></span></li>
-            <li><span class="nes-text is-primary"><a href="http://172.16.10.100:5000">Netswatch Topo</a></span></li>
-          </ul>
-        </div>
-      </div> Left Column -->
-
       <div class="col">
         <div class="nes-container with-title">
           <p class="title">To Telecom IDC</p>
@@ -51,38 +36,27 @@
                 <input class="nes-input" type="password" id="password" name="password" value="">
               </div>
             </div>
-              <!--
-            <div class="row">
-              <div class="col">
-                <label for="Username">Private Key</label>
-                <input class="form-control" type="file" id="privatekey" name="privatekey" value="">
-              </div>
-              <div class="col">
-                <label for="Passphrase">Passphrase</label>
-                <input class="form-control" type="password" id="passphrase" name="passphrase" value="">
-              </div>
-            </div>
-            <div class="row">
-              <div class="col">
-                <label for="totp">Totp (time-based one-time password)</label>
-                <input class="form-control" type="password" id="totp" name="totp" value="">
-              </div>
-              <div class="col">
-              </div>
-            </div>
-            -->
             <input type="hidden" id="term" name="term" value="xterm-256color">
             {% module xsrf_form_html() %}
             <button type="submit" class="nes-btn is-primary">Connect</button>
             <button type="reset" class="nes-btn is-error">Reset</button>
           </form>
         </div>
-        <div class="container">
-          <div id="status" style="color: red;"></div>
-          <div id="terminal"></div>
-        </div>
-      </div> <!-- Right Column -->
+        <div id="toolbar" class="row">
+          <div class="col-1">
+            <label class="nes-btn">
+              <span>Upload</span>
+              <input id="upload" type="file"></input>
+            </label>
+          </div>
+          <div class="col-4">
+            <progress id="progress" class="nes-progress is-success is-dark" value="0" max="100"></progress>
+          </div>
 
+        </div>
+        <div id="terminal"></div>
+        <div id="status" style="color: red;"></div>
+      </div> <!-- Right Column -->
     </div>
     <div class="font_preload" style="opacity: 0">
       <span style="font-family: Hack;"></span>
@@ -91,7 +65,6 @@
 
     <script src="static/js/jquery.min.js"></script>
     <script src="static/js/popper.min.js"></script>
-    <!-- <script src="static/js/bootstrap.min.js"></script> -->
     <script src="static/js/xterm.min.js"></script>
     <script src="static/js/xterm-addon-fit.min.js"></script>
     <script src="static/js/main.js"></script>

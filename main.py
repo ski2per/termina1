@@ -2,30 +2,37 @@ import os.path
 import logging
 import tornado.web
 import tornado.ioloop
-from tornado.options import options
 from term1nal import handlers
-from term1nal.handlers import IndexHandler, WSHandler, NotFoundHandler
-from term1nal.settings import get_app_settings, get_host_keys_settings, get_policy_setting, get_ssl_context, \
-    get_server_settings, check_encoding_setting
+from term1nal.conf import conf
+from term1nal.handlers import IndexHandler, WSHandler, NotFoundHandler, UploadHandler
+from term1nal.conf import get_host_keys_settings, get_policy_setting, get_ssl_context, \
+     check_encoding_setting
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-options.define("base_dir", BASE_DIR)
-check_encoding_setting(options.encoding)
+conf.base_dir = BASE_DIR
+check_encoding_setting(conf.encoding)
 
 
 class Term1nal(tornado.web.Application):
     def __init__(self, loop):
-        host_keys_settings = get_host_keys_settings(options)
-        policy = get_policy_setting(options, host_keys_settings)
+        host_keys_settings = get_host_keys_settings(conf)
+        policy = get_policy_setting(conf, host_keys_settings)
 
         handlers = [
-            (r'/', IndexHandler, dict(loop=loop, policy=policy,
+            (r"/", IndexHandler, dict(loop=loop, policy=policy,
                                       host_keys_settings=host_keys_settings)),
-            (r'/ws', WSHandler, dict(loop=loop,))
+            (r"/ws", WSHandler, dict(loop=loop,)),
+            (r"/upload", UploadHandler)
         ]
 
-        settings =  get_app_settings(options)
+        # settings =  get_app_settings(options)
+        settings = dict(
+            websocket_ping_interval=conf.ws_ping,
+            debug=conf.debug,
+            xsrf_cookies=conf.xsrf,
+            origin_policy=conf.origin
+        )
 
         settings["template_path"] = os.path.join(BASE_DIR, 'templates')
         settings["static_path"] = os.path.join(BASE_DIR, 'static')
@@ -40,22 +47,25 @@ def setup_listening(app, port, address, server_settings):
         server_type = 'http'
     else:
         server_type = 'https'
-        handlers.redirecting = True if options.redirect else False
+        handlers.redirecting = True if conf.redirect else False
     logging.info(
         'Listening on {}:{} ({})'.format(address, port, server_type)
     )
 
 
 def main():
-    handlers.redirecting = True if options.redirect else False
+    handlers.redirecting = True if conf.redirect else False
     loop = tornado.ioloop.IOLoop.current()
     app = Term1nal(loop=loop)
-    ssl_ctx = get_ssl_context(options)
-    server_settings = get_server_settings(options)
-    setup_listening(app, options.port, options.address, server_settings)
+    ssl_ctx = get_ssl_context(conf)
+    server_settings = dict(
+        xheaders=True,
+        max_body_size=1000 * 1024 * 1024, # 1G
+    )
+    setup_listening(app, conf.port, conf.address, server_settings)
     if ssl_ctx:
         server_settings.update(ssl_options=ssl_ctx)
-        setup_listening(app, options.sslport, options.ssladdress, server_settings)
+        setup_listening(app, conf.ssl_port, conf.ssl_host, server_settings)
     loop.start()
 
 

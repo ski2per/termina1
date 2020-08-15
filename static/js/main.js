@@ -308,7 +308,6 @@ jQuery(function($){
   }
 
   function logStatus(text, to_populate) {
-    console.log(text);
     status.html(text.split('\n').join('<br/>'));
 
     if (to_populate && validated_form_data) {

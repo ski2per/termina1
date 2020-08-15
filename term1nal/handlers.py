@@ -92,10 +92,8 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(IndexHandler, self).initialize(loop=loop)
         print(f"@@@@@@@ IDX connection.context: {self.context.address}")
-        self.origin_policy = self.settings.get('origin_policy')
         self.ssh_client = self.get_ssh_client()
         self.debug = self.settings.get('debug', False)
-        self.font = self.settings.get('font', '')
         self.result = dict(id=None, status=None, encoding=None)
 
     def write_error(self, status_code, **kwargs):
@@ -173,13 +171,13 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
     def ssh_connect(self, args):
         ssh = self.ssh_client
-        dst_addr = args[:2]
-        logging.info('Connecting to {}:{}'.format(*dst_addr))
+        ssh_endpoint = args[:2]
+        logging.info('Connecting to {}:{}'.format(*ssh_endpoint))
 
         try:
             ssh.connect(*args, timeout=conf.timeout)
         except socket.error:
-            raise ValueError('Unable to connect to {}:{}'.format(*dst_addr))
+            raise ValueError('Unable to connect to {}:{}'.format(*ssh_endpoint))
         except paramiko.BadAuthenticationType:
             raise ValueError('Bad authentication type.')
         except paramiko.AuthenticationException:
@@ -190,23 +188,19 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         term = self.get_argument('term', u'') or u'xterm'
         shell_channel = ssh.invoke_shell(term=term)
         shell_channel.setblocking(0)
-        minion = Minion(self.loop, ssh, shell_channel, dst_addr)
+        minion = Minion(self.loop, ssh, shell_channel, ssh_endpoint)
         minion.encoding = conf.encoding if conf.encoding else self.get_default_encoding(ssh)
         return minion
 
     def get(self):
-        self.render('index.html', debug=self.debug, font=self.font)
+        self.render('index.html', debug=self.debug)
 
     @tornado.gen.coroutine
     def post(self):
-        if self.debug and self.get_argument('error', u''):
-            # for testing purpose only
-            raise ValueError('Uncaught exception')
-
         ip, port = self.get_client_endpoint()
         minions = clients.get(ip, {})
         if minions and len(minions) >= conf.max_conn:
-            raise tornado.web.HTTPError(403, 'Too many live connections.')
+            raise tornado.web.HTTPError(403, 'too many connections')
 
         try:
             args = self.get_args()

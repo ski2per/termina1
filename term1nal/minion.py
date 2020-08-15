@@ -42,6 +42,7 @@ class Minion:
             self.loop.call_later(0.1, self, self.fd, IOLoop.WRITE)
 
     def on_read(self):
+        print(f"------------clients:{clients}")
         logging.debug('minion {} on read'.format(self.id))
         try:
             data = self.chan.recv(BUFFER_SIZE)

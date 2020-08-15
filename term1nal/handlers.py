@@ -206,7 +206,6 @@ class MixinHandler:
         else:
             return origin in self.origin_policy
 
-
     def get_value(self, name):
         value = self.get_argument(name)
         if not value:
@@ -216,7 +215,8 @@ class MixinHandler:
     def get_client_endpoint(self):
         print(f"!!!!!!!!!: {type(self.context.address)}")
         print(self.context.address)
-        return self.get_real_client_addr() or self.context.address
+
+        return self.get_real_client_addr() or self.context.address[:2]
 
     def get_real_client_addr(self):
         ip = self.request.remote_ip
@@ -233,25 +233,24 @@ class MixinHandler:
         return (ip, port)
 
 
-class NotFoundHandler(MixinHandler, tornado.web.ErrorHandler):
-
-    def initialize(self):
-        super(NotFoundHandler, self).initialize()
-
-    def prepare(self):
-        raise tornado.web.HTTPError(404)
+# class NotFoundHandler(tornado.web.RequestHandler):
+#     def prepare(self):
+        # raise tornado.web.HTTPError(
+        #     status_code=404,
+        #     reason="Not Found"
+        # )
 
 
 class IndexHandler(MixinHandler, tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=cpu_count() * 5)
 
-    def initialize(self, loop, policy, host_keys_settings):
+    def initialize(self, loop, host_keys_settings):
         super(IndexHandler, self).initialize()
         self.context = self.request.connection.context
         print(f"@@@@@@@ IDX connection.context: {self.context.address}")
         self.loop = loop
         self.origin_policy = self.settings.get('origin_policy')
-        self.policy = policy
+        # self.policy = policy
         self.host_keys_settings = host_keys_settings
         self.ssh_client = self.get_ssh_client()
         self.debug = self.settings.get('debug', False)
@@ -273,10 +272,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
     def get_ssh_client(self):
         ssh = SSHClient()
-        # ssh._system_host_keys = self.host_keys_settings['system_host_keys']
-        # ssh._host_keys = self.host_keys_settings['host_keys']
-        # ssh._host_keys_filename = self.host_keys_settings['host_keys_filename']
-        ssh.set_missing_host_key_policy(self.policy)
+        ssh.set_missing_host_key_policy(paramiko.client.WarningPolicy)
         return ssh
 
     def get_privatekey(self):
@@ -329,8 +325,8 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         passphrase = self.get_argument('passphrase', u'')
         totp = self.get_argument('totp', u'')
 
-        if isinstance(self.policy, paramiko.RejectPolicy):
-            self.lookup_hostname(hostname, port)
+        # if isinstance(self.policy, paramiko.RejectPolicy):
+        #     self.lookup_hostname(hostname, port)
 
         if privatekey:
             pkey = PrivateKey(privatekey, passphrase, filename).get_pkey_obj()

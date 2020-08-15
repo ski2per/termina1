@@ -16,6 +16,7 @@ def get_policy_dictionary():
        is type and issubclass(v, paramiko.client.MissingHostKeyPolicy)
        and v is not paramiko.client.MissingHostKeyPolicy
     }
+    print(dic)
     return dic
 
 

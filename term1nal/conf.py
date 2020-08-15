@@ -90,8 +90,10 @@ def get_host_keys_settings(options):
 
 
 def get_policy_setting(options, host_keys_settings):
+    print(f"====:{host_keys_settings}")
     policy_class = get_policy_class(options.policy)
     logging.info(policy_class.__name__)
+    print(f"*****: {policy_class.__name__}")
     check_policy_setting(policy_class, host_keys_settings)
     return policy_class()
 

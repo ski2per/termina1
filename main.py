@@ -4,7 +4,7 @@ import tornado.web
 import tornado.ioloop
 from term1nal import handlers
 from term1nal.conf import conf
-from term1nal.handlers import IndexHandler, WSHandler, NotFoundHandler, UploadHandler
+from term1nal.handlers import IndexHandler, WSHandler, UploadHandler
 from term1nal.conf import get_host_keys_settings, get_policy_setting, get_ssl_context, \
      check_encoding_setting
 
@@ -20,14 +20,13 @@ class Term1nal(tornado.web.Application):
         policy = get_policy_setting(conf, host_keys_settings)
 
         handlers = [
-            (r"/", IndexHandler, dict(loop=loop, policy=policy,
-                                      host_keys_settings=host_keys_settings)),
-            (r"/ws", WSHandler, dict(loop=loop,)),
+            (r"/", IndexHandler, dict(loop=loop, host_keys_settings=host_keys_settings)),
+            (r"/ws", WSHandler, dict(loop=loop)),
             (r"/upload", UploadHandler)
         ]
 
-        # settings =  get_app_settings(options)
         settings = dict(
+            # default_handler_class=NotFoundHandler,
             websocket_ping_interval=conf.ws_ping,
             debug=conf.debug,
             xsrf_cookies=conf.xsrf,

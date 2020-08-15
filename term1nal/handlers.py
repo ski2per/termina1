@@ -1,4 +1,3 @@
-import io
 import json
 import logging
 import socket
@@ -12,8 +11,8 @@ from concurrent.futures import ThreadPoolExecutor
 from tornado.ioloop import IOLoop
 from tornado.process import cpu_count
 from term1nal.conf import conf
-from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, to_int, \
-     UnicodeType, is_same_primary_domain, is_valid_encoding
+from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, \
+     UnicodeType, is_valid_encoding
 from term1nal.minion import Minion, recycle_minion, clients
 
 try:
@@ -21,13 +20,9 @@ try:
 except ImportError:
     JSONDecodeError = ValueError
 
-from urllib.parse import urlparse
 
 DELAY = 3
 DEFAULT_PORT = 22
-
-swallow_http_errors = True
-redirecting = None
 
 
 class InvalidValueError(Exception):
@@ -104,7 +99,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         self.result = dict(id=None, status=None, encoding=None)
 
     def write_error(self, status_code, **kwargs):
-        if swallow_http_errors and self.request.method == 'POST':
+        if self.request.method == 'POST':
             exc_info = kwargs.get('exc_info')
             if exc_info:
                 reason = getattr(exc_info[1], 'log_message', None)
@@ -195,9 +190,9 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         term = self.get_argument('term', u'') or u'xterm'
         shell_channel = ssh.invoke_shell(term=term)
         shell_channel.setblocking(0)
-        worker = Minion(self.loop, ssh, shell_channel, dst_addr)
-        worker.encoding = conf.encoding if conf.encoding else self.get_default_encoding(ssh)
-        return worker
+        minion = Minion(self.loop, ssh, shell_channel, dst_addr)
+        minion.encoding = conf.encoding if conf.encoding else self.get_default_encoding(ssh)
+        return minion
 
     def get(self):
         self.render('index.html', debug=self.debug, font=self.font)
@@ -209,11 +204,9 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
             raise ValueError('Uncaught exception')
 
         ip, port = self.get_client_endpoint()
-        workers = clients.get(ip, {})
-        if workers and len(workers) >= conf.max_conn:
+        minions = clients.get(ip, {})
+        if minions and len(minions) >= conf.max_conn:
             raise tornado.web.HTTPError(403, 'Too many live connections.')
-
-        # self.check_origin()
 
         try:
             args = self.get_args()
@@ -223,18 +216,18 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         future = self.executor.submit(self.ssh_connect, args)
 
         try:
-            worker = yield future
+            minion = yield future
         except (ValueError, paramiko.SSHException) as exc:
             logging.error(traceback.format_exc())
             self.result.update(status=str(exc))
         else:
-            if not workers:
-                clients[ip] = workers
-            worker.src_addr = (ip, port)
-            workers[worker.id] = worker
+            if not minions:
+                clients[ip] = minions
+            minion.src_addr = (ip, port)
+            minions[minion.id] = minion
             self.loop.call_later(conf.delay or DELAY, recycle_minion,
-                                 worker)
-            self.result.update(id=worker.id, encoding=worker.encoding)
+                                 minion)
+            self.result.update(id=minion.id, encoding=minion.encoding)
 
         self.write(self.result)
 
@@ -244,37 +237,37 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
     def initialize(self, loop):
         super(WSHandler, self).initialize(loop=loop)
         print(f"@@@@@@@ WS connection.context: {self.context.address}")
-        self.worker_ref = None
+        self.minion_ref = None
 
     def open(self):
         self.src_addr = self.get_client_endpoint()
         logging.info('Connected from {}:{}'.format(*self.src_addr))
 
-        workers = clients.get(self.src_addr[0])
-        if not workers:
+        minions = clients.get(self.src_addr[0])
+        if not minions:
             self.close(reason='Websocket authentication failed.')
             return
 
         try:
-            worker_id = self.get_value('id')
-            print(f"############ worker id: {worker_id}")
+            minion_id = self.get_value('id')
+            print(f"############ minion id: {minion_id}")
 
         except (tornado.web.MissingArgumentError, InvalidValueError) as exc:
             self.close(reason=str(exc))
         else:
-            worker = workers.get(worker_id)
-            if worker:
-                workers[worker_id] = None
+            minion = minions.get(minion_id)
+            if minion:
+                minions[minion_id] = None
                 self.set_nodelay(True)
-                worker.set_handler(self)
-                self.worker_ref = weakref.ref(worker)
-                self.loop.add_handler(worker.fd, worker, IOLoop.READ)
+                minion.set_handler(self)
+                self.minion_ref = weakref.ref(minion)
+                self.loop.add_handler(minion.fd, minion, IOLoop.READ)
             else:
                 self.close(reason='Websocket authentication failed.')
 
     def on_message(self, message):
         logging.debug('{!r} from {}:{}'.format(message, *self.src_addr))
-        worker = self.worker_ref()
+        minion = self.minion_ref()
         try:
             msg = json.loads(message)
         except JSONDecodeError:
@@ -286,23 +279,23 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
         resize = msg.get('resize')
         if resize and len(resize) == 2:
             try:
-                worker.chan.resize_pty(*resize)
+                minion.chan.resize_pty(*resize)
             except (TypeError, struct.error, paramiko.SSHException):
                 pass
 
         data = msg.get('data')
         if data and isinstance(data, UnicodeType):
-            worker.data_to_dst.append(data)
-            worker.on_write()
+            minion.data_to_dst.append(data)
+            minion.on_write()
 
     def on_close(self):
         logging.info('Disconnected from {}:{}'.format(*self.src_addr))
         if not self.close_reason:
             self.close_reason = 'client disconnected'
 
-        worker = self.worker_ref() if self.worker_ref else None
-        if worker:
-            worker.close(reason=self.close_reason)
+        minion = self.minion_ref() if self.minion_ref else None
+        if minion:
+            minion.close(reason=self.close_reason)
 
 
 class UploadHandler(tornado.web.RequestHandler):

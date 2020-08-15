@@ -2,7 +2,6 @@ import os.path
 import logging
 import tornado.web
 import tornado.ioloop
-from term1nal import handlers
 from term1nal.conf import conf
 from term1nal.handlers import IndexHandler, WSHandler, UploadHandler
 from term1nal.utils import get_ssl_context, check_encoding_setting
@@ -15,7 +14,6 @@ check_encoding_setting(conf.encoding)
 class Term1nal(tornado.web.Application):
     def __init__(self, loop):
         handlers = [
-            # (r"/", IndexHandler, dict(loop=loop, host_keys_settings=host_keys_settings)),
             (r"/", IndexHandler, dict(loop=loop)),
             (r"/ws", WSHandler, dict(loop=loop)),
             (r"/upload", UploadHandler)
@@ -41,14 +39,13 @@ def setup_listening(app, port, address, server_settings):
         server_type = 'http'
     else:
         server_type = 'https'
-        handlers.redirecting = True if conf.redirect else False
     logging.info(
         'Listening on {}:{} ({})'.format(address, port, server_type)
     )
 
 
 def main():
-    handlers.redirecting = True if conf.redirect else False
+    # handlers.redirecting = True if conf.redirect else False
     loop = tornado.ioloop.IOLoop.current()
     app = Term1nal(loop=loop)
     ssl_ctx = get_ssl_context(conf)

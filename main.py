@@ -5,9 +5,7 @@ import tornado.ioloop
 from term1nal import handlers
 from term1nal.conf import conf
 from term1nal.handlers import IndexHandler, WSHandler, UploadHandler
-from term1nal.conf import get_host_keys_settings, get_policy_setting, get_ssl_context, \
-     check_encoding_setting
-
+from term1nal.conf import get_ssl_context, check_encoding_setting
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 conf.base_dir = BASE_DIR
@@ -16,11 +14,9 @@ check_encoding_setting(conf.encoding)
 
 class Term1nal(tornado.web.Application):
     def __init__(self, loop):
-        host_keys_settings = get_host_keys_settings(conf)
-        policy = get_policy_setting(conf, host_keys_settings)
-
         handlers = [
-            (r"/", IndexHandler, dict(loop=loop, host_keys_settings=host_keys_settings)),
+            # (r"/", IndexHandler, dict(loop=loop, host_keys_settings=host_keys_settings)),
+            (r"/", IndexHandler, dict(loop=loop)),
             (r"/ws", WSHandler, dict(loop=loop)),
             (r"/upload", UploadHandler)
         ]
@@ -37,7 +33,6 @@ class Term1nal(tornado.web.Application):
         settings["static_path"] = os.path.join(BASE_DIR, 'static')
 
         super().__init__(handlers, **settings)
-
 
 
 def setup_listening(app, port, address, server_settings):
@@ -59,7 +54,7 @@ def main():
     ssl_ctx = get_ssl_context(conf)
     server_settings = dict(
         xheaders=True,
-        max_body_size=1000 * 1024 * 1024, # 1G
+        max_body_size=1000 * 1024 * 1024,  # 1G
     )
     setup_listening(app, conf.port, conf.address, server_settings)
     if ssl_ctx:

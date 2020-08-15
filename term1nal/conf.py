@@ -2,6 +2,7 @@ import os
 import os.path
 import logging
 import ssl
+from term1nal.utils import to_ip_address, parse_origin_from_url, is_valid_encoding
 
 def get_bool_env(name, default=False) -> bool:
     """
@@ -51,9 +52,6 @@ conf.cert_file= os.getenv("TERM_CERT_FILE", "")
 conf.key_file= os.getenv("TERM_KEY_FILE", "")
 conf.key_file= os.getenv("TERM_KEY_FILE", "")
 conf.debug = get_bool_env("TERM_DEBUG", True)
-conf.policy = os.getenv("TERM_POLICY", "warning")
-conf.host_file = os.getenv("TERM_HOST_FILE", "")
-conf.sys_host_file = os.getenv("TERM_SYS_HOST_FILE", "")
 conf.redirect = get_bool_env("TERM_REDIRECT", True)
 conf.xsrf = get_bool_env("TERM_XSRF", False)
 conf.origin = os.getenv("TERM_ORIGIN", "*")
@@ -61,41 +59,7 @@ conf.ws_ping = int(os.getenv("TERM_WS_PING", 0))
 conf.timeout = int(os.getenv("TERM_TIMEOUT", 3))
 conf.max_conn = int(os.getenv("TERM_MAX_CONN", 20))
 conf.delay = int(os.getenv("TERM_MAX_CONN", 0))
-conf.encoding =  os.getenv("TERM_ENCODING", "")
-
-
-from term1nal.policy import load_host_keys, get_policy_class, check_policy_setting
-from term1nal.utils import to_ip_address, parse_origin_from_url, is_valid_encoding
-
-
-def get_host_keys_settings(options):
-    if not options.hostfile:
-        host_keys_filename = os.path.join(options.base_dir, 'known_hosts')
-    else:
-        host_keys_filename = options.hostfile
-    host_keys = load_host_keys(host_keys_filename)
-
-    if not options.syshostfile:
-        filename = os.path.expanduser('~/.ssh/known_hosts')
-    else:
-        filename = options.syshostfile
-    system_host_keys = load_host_keys(filename)
-
-    settings = dict(
-        host_keys=host_keys,
-        system_host_keys=system_host_keys,
-        host_keys_filename=host_keys_filename
-    )
-    return settings
-
-
-def get_policy_setting(options, host_keys_settings):
-    print(f"====:{host_keys_settings}")
-    policy_class = get_policy_class(options.policy)
-    logging.info(policy_class.__name__)
-    print(f"*****: {policy_class.__name__}")
-    check_policy_setting(policy_class, host_keys_settings)
-    return policy_class()
+conf.encoding = os.getenv("TERM_ENCODING", "")
 
 
 def get_ssl_context(options):

@@ -233,25 +233,16 @@ class MixinHandler:
         return (ip, port)
 
 
-# class NotFoundHandler(tornado.web.RequestHandler):
-#     def prepare(self):
-        # raise tornado.web.HTTPError(
-        #     status_code=404,
-        #     reason="Not Found"
-        # )
-
 
 class IndexHandler(MixinHandler, tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=cpu_count() * 5)
 
-    def initialize(self, loop, host_keys_settings):
+    def initialize(self, loop):
         super(IndexHandler, self).initialize()
         self.context = self.request.connection.context
         print(f"@@@@@@@ IDX connection.context: {self.context.address}")
         self.loop = loop
         self.origin_policy = self.settings.get('origin_policy')
-        # self.policy = policy
-        self.host_keys_settings = host_keys_settings
         self.ssh_client = self.get_ssh_client()
         self.debug = self.settings.get('debug', False)
         self.font = self.settings.get('font', '')

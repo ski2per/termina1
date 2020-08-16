@@ -1,6 +1,37 @@
+import os
 import re
 import ipaddress
+import logging
+from tornado.log import enable_pretty_logging
 from urllib.parse import urlparse
+
+
+enable_pretty_logging()
+
+def get_logging_level():
+    """ Return logging level by the value of environment variable"""
+    log_dict = {
+        "info": logging.INFO,
+        "debug": logging.DEBUG,
+        "warning": logging.WARNING,
+        "critical": logging.CRITICAL,
+        "error": logging.ERROR,
+    }
+
+    lvl = os.getenv("TERM_LOG_LEVEL", "info").strip().lower()
+    return log_dict[lvl]
+
+
+def logger(name='term1nal'):
+    log = logging.getLogger(name)
+    # log_format = '[%(asctime)s] %(levelname)s [%(threadName)s]: %(message)s'
+    # date_format = '%Y-%m-%d %H:%M:%S'
+    # logging.basicConfig(format=log_format, datefmt=date_format)
+    log.setLevel(get_logging_level())
+    return log
+
+
+LOG = logger()
 
 UnicodeType = str
 

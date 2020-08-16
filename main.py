@@ -1,10 +1,9 @@
 import os.path
-import logging
 import tornado.web
 import tornado.ioloop
 from term1nal.conf import conf
 from term1nal.handlers import IndexHandler, WSHandler, UploadHandler
-from term1nal.utils import get_ssl_context, check_encoding_setting
+from term1nal.utils import get_ssl_context, check_encoding_setting, LOG
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 conf.base_dir = BASE_DIR
@@ -39,13 +38,10 @@ def setup_listening(app, port, address, server_settings):
         server_type = 'http'
     else:
         server_type = 'https'
-    logging.info(
-        'Listening on {}:{} ({})'.format(address, port, server_type)
-    )
+    LOG.info('Listening on {}:{} ({})'.format(address, port, server_type))
 
 
 def main():
-    # handlers.redirecting = True if conf.redirect else False
     loop = tornado.ioloop.IOLoop.current()
     app = Term1nal(loop=loop)
     ssl_ctx = get_ssl_context(conf)

@@ -1,5 +1,4 @@
 import json
-import logging
 import socket
 import struct
 import traceback
@@ -14,6 +13,7 @@ from term1nal.conf import conf
 from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, \
      UnicodeType, is_valid_encoding
 from term1nal.minion import Minion, recycle_minion, clients
+from term1nal.utils import LOG
 
 try:
     from json.decoder import JSONDecodeError
@@ -46,7 +46,7 @@ class SSHClient(paramiko.SSHClient):
 
     def _auth(self, username, password, pkey, *args):
         self.password = password
-        logging.info('Trying password authentication')
+        LOG.info('Trying password authentication')
         try:
             self._transport.auth_password(username, password)
             return
@@ -136,7 +136,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         username = self.get_value('username')
         password = self.get_argument('password', u'')
         args = (hostname, port, username, password)
-        logging.debug(args)
+        LOG.debug(args)
         return args
 
     def parse_encoding(self, data):
@@ -158,21 +158,21 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
             try:
                 _, stdout, _ = ssh.exec_command(command, get_pty=True)
             except paramiko.SSHException as exc:
-                logging.info(str(exc))
+                LOG.info(str(exc))
             else:
                 data = stdout.read()
-                logging.debug('{!r} => {!r}'.format(command, data))
+                LOG.debug('{!r} => {!r}'.format(command, data))
                 result = self.parse_encoding(data)
                 if result:
                     return result
 
-        logging.warning('Could not detect the default encoding.')
+        LOG.warning('Could not detect the default encoding.')
         return 'utf-8'
 
     def ssh_connect(self, args):
         ssh = self.ssh_client
         ssh_endpoint = args[:2]
-        logging.info('Connecting to {}:{}'.format(*ssh_endpoint))
+        LOG.info('Connecting to {}:{}'.format(*ssh_endpoint))
 
         try:
             ssh.connect(*args, timeout=conf.timeout)
@@ -212,7 +212,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         try:
             minion = yield future
         except (ValueError, paramiko.SSHException) as exc:
-            logging.error(traceback.format_exc())
+            LOG.error(traceback.format_exc())
             self.result.update(status=str(exc))
         else:
             if not minions:
@@ -235,7 +235,7 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
 
     def open(self):
         self.src_addr = self.get_client_endpoint()
-        logging.info('Connected from {}:{}'.format(*self.src_addr))
+        LOG.info('Connected from {}:{}'.format(*self.src_addr))
 
         minions = clients.get(self.src_addr[0])
         if not minions:
@@ -260,7 +260,7 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
                 self.close(reason='Websocket authentication failed.')
 
     def on_message(self, message):
-        logging.debug('{!r} from {}:{}'.format(message, *self.src_addr))
+        LOG.debug('{!r} from {}:{}'.format(message, *self.src_addr))
         minion = self.minion_ref()
         try:
             msg = json.loads(message)
@@ -283,7 +283,7 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
             minion.on_write()
 
     def on_close(self):
-        logging.info('Disconnected from {}:{}'.format(*self.src_addr))
+        LOG.info('Disconnected from {}:{}'.format(*self.src_addr))
         if not self.close_reason:
             self.close_reason = 'client disconnected'
 
@@ -300,8 +300,8 @@ class UploadHandler(tornado.web.RequestHandler):
         file = self.request.files["upload"][0]
         original_filename = file["filename"]
         print(original_filename)
-        with open(f"/tmp/{original_filename}", "wb") as f:
-            f.write(file["body"])
-        self.finish(f"file {original_filename} is uploaded")
-        # self.finish(original_filename)
+        # with open(f"/tmp/{original_filename}", "wb") as f:
+        #     f.write(file["body"])
+        # self.finish(f"file {original_filename} is uploaded")
+        self.finish(original_filename)
 

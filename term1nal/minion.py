@@ -1,9 +1,10 @@
-import logging
 import tornado.websocket
 
 from tornado.ioloop import IOLoop
 from tornado.iostream import _ERRNO_CONNRESET
 from tornado.util import errno_from_exception
+from term1nal.utils import LOG
+
 
 BUFFER_SIZE = 64 * 1024
 clients = {}  # {ip: {id: minion}}
@@ -43,37 +44,37 @@ class Minion:
 
     def on_read(self):
         print(f"------------clients:{clients}")
-        logging.debug('minion {} on read'.format(self.id))
+        LOG.debug('minion {} on read'.format(self.id))
         try:
             data = self.chan.recv(BUFFER_SIZE)
         except (OSError, IOError) as e:
-            logging.error(e)
+            LOG.error(e)
             if errno_from_exception(e) in _ERRNO_CONNRESET:
                 self.close(reason='chan error on reading')
         else:
-            logging.debug('{!r} from {}:{}'.format(data, *self.dst_addr))
+            LOG.debug('{!r} from {}:{}'.format(data, *self.dst_addr))
             if not data:
                 self.close(reason='Bye ~')
                 return
 
-            logging.debug('{!r} to {}:{}'.format(data, *self.handler.src_addr))
+            LOG.debug('{!r} to {}:{}'.format(data, *self.handler.src_addr))
             try:
                 self.handler.write_message(data, binary=True)
             except tornado.websocket.WebSocketClosedError:
                 self.close(reason='websocket closed')
 
     def on_write(self):
-        logging.debug('minion {} on write'.format(self.id))
+        LOG.debug('minion {} on write'.format(self.id))
         if not self.data_to_dst:
             return
 
         data = ''.join(self.data_to_dst)
-        logging.debug('{!r} to {}:{}'.format(data, *self.dst_addr))
+        LOG.debug('{!r} to {}:{}'.format(data, *self.dst_addr))
 
         try:
             sent = self.chan.send(data)
         except (OSError, IOError) as e:
-            logging.error(e)
+            LOG.error(e)
             if errno_from_exception(e) in _ERRNO_CONNRESET:
                 self.close(reason='chan error on writing')
             else:
@@ -92,7 +93,7 @@ class Minion:
             return
         self.closed = True
 
-        logging.info(
+        LOG.info(
             'Closing minion {} with reason: {}'.format(self.id, reason)
         )
         if self.handler:
@@ -100,10 +101,10 @@ class Minion:
             self.handler.close(reason=reason)
         self.chan.close()
         self.ssh.close()
-        logging.info('Connection to {}:{} lost'.format(*self.dst_addr))
+        LOG.info('Connection to {}:{} lost'.format(*self.dst_addr))
 
         clear_minion(self, clients)
-        logging.debug(clients)
+        LOG.debug(clients)
 
 
 def clear_minion(minion, clients):
@@ -121,5 +122,5 @@ def clear_minion(minion, clients):
 def recycle_minion(minion):
     if minion.handler:
         return
-    logging.warning('Recycling minion {}'.format(minion.id))
+    LOG.warning('Recycling minion {}'.format(minion.id))
     minion.close(reason='minion recycled')

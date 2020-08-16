@@ -300,6 +300,7 @@ class UploadHandler(tornado.web.RequestHandler):
         file = self.request.files["upload"][0]
         original_filename = file["filename"]
         print(original_filename)
+        print(self.get_secure_cookie("minion"))
         # with open(f"/tmp/{original_filename}", "wb") as f:
         #     f.write(file["body"])
         # self.finish(f"file {original_filename} is uploaded")

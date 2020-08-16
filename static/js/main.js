@@ -38,7 +38,7 @@ var wterm = {};
 jQuery(function($){
   var status = $('#status'),
       formID = '#ssh_cred',
-      button = $('.btn-primary'),
+      submitBtn = $('#submit'),
       form_container = $('.form-container'),
       toolbar = $('#toolbar'),
       progress = $("#progress"),
@@ -56,14 +56,13 @@ jQuery(function($){
       state = DISCONNECTED,
       messages = {1: 'This client is connecting ...', 2: 'This client is already connnected.'},
       key_max_size = 16384,
-      fields = ['hostname', 'port', 'username'],
-      form_keys = fields.concat(['password', 'totp']),
+      fields = ['hostname', 'port', 'username', 'password'],
+      form_keys = fields.concat(['totp']),
       opts_keys = ['bgcolor', 'title', 'encoding', 'command', 'term'],
       url_form_data = {},
       url_opts_data = {},
       validated_form_data,
-      event_origin,
-      hostname_tester = /((^\s*((([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5]))\s*$)|(^\s*((([0-9A-Fa-f]{1,4}:){7}([0-9A-Fa-f]{1,4}|:))|(([0-9A-Fa-f]{1,4}:){6}(:[0-9A-Fa-f]{1,4}|((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){5}(((:[0-9A-Fa-f]{1,4}){1,2})|:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3})|:))|(([0-9A-Fa-f]{1,4}:){4}(((:[0-9A-Fa-f]{1,4}){1,3})|((:[0-9A-Fa-f]{1,4})?:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){3}(((:[0-9A-Fa-f]{1,4}){1,4})|((:[0-9A-Fa-f]{1,4}){0,2}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){2}(((:[0-9A-Fa-f]{1,4}){1,5})|((:[0-9A-Fa-f]{1,4}){0,3}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(([0-9A-Fa-f]{1,4}:){1}(((:[0-9A-Fa-f]{1,4}){1,6})|((:[0-9A-Fa-f]{1,4}){0,4}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:))|(:(((:[0-9A-Fa-f]{1,4}){1,7})|((:[0-9A-Fa-f]{1,4}){0,5}:((25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}))|:)))(%.+)?\s*$))|(^\s*((?=.{1,255}$)(?=.*[A-Za-z].*)[0-9A-Za-z](?:(?:[0-9A-Za-z]|\b-){0,61}[0-9A-Za-z])?(?:\.[0-9A-Za-z](?:(?:[0-9A-Za-z]|\b-){0,61}[0-9A-Za-z])?)*)\s*$)/;
+      event_origin
 
   toolbar.hide()
 
@@ -78,7 +77,6 @@ jQuery(function($){
       }
     }
   }
-
 
   function restoreItems(names) {
     var i, name, value;
@@ -96,6 +94,8 @@ jQuery(function($){
     var names = form_keys.concat(['passphrase']),
         i, name;
 
+    console.log("in populateForm")
+    console.log(names)
     for (i=0; i < names.length; i++) {
       name = names[i];
       $('#'+name).val(data.get(name));
@@ -106,7 +106,7 @@ jQuery(function($){
     return Object.keys(object).length;
   }
 
-  function decode_uri(uri) {
+  function decodeUri(uri) {
     try {
       return decodeURI(uri);
     } catch(e) {
@@ -124,7 +124,9 @@ jQuery(function($){
     return null;
   }
 
-  function parse_url_data(string, form_keys, opts_keys, form_map, opts_map) {
+  function parseUrlData(string, form_keys, opts_keys, form_map, opts_map) {
+    console.log("88888888888888888888")
+    console.log(string)
     var i, pair, key, val,
         arr = string.split('&');
 
@@ -163,7 +165,6 @@ jQuery(function($){
     $('#toolbar .toolbar').toggleClass('fullscreen');
     term.fitAddon.fit();
   }
-
 
   function currentGeometry(term) {
     if (!style.width || !style.height) {
@@ -223,7 +224,7 @@ jQuery(function($){
     }
   }
 
-  function reset_font_family(term) {
+  function resetFontFamily(term) {
     if (!term.font_family_updated) {
       console.log('Already using default font family');
       return;
@@ -236,7 +237,7 @@ jQuery(function($){
     }
   }
 
-  function format_geometry(cols, rows) {
+  function formatGeometry(cols, rows) {
     return JSON.stringify({'cols': cols, 'rows': rows});
   }
 
@@ -319,7 +320,7 @@ jQuery(function($){
   }
 
   function ajax_complete_callback(resp) {
-    button.prop('disabled', false);
+    submitBtn.attr('disabled', false)
 
     if (resp.status !== 200) {
       logStatus(resp.status + ': ' + resp.statusText, true);
@@ -456,7 +457,7 @@ jQuery(function($){
       }
 
       if (!valid_args) {
-        console.log('Unable to resize terminal to geometry: ' + format_geometry(cols, rows));
+        console.log('Unable to resize terminal to geometry: ' + formatGeometry(cols, rows));
       } else {
         term.on_resize(cols, rows);
       }
@@ -471,12 +472,12 @@ jQuery(function($){
     };
 
     wterm.default_font = function() {
-      reset_font_family(term);
+      resetFontFamily(term);
     };
 
     term.on_resize = function(cols, rows) {
       if (cols !== this.cols || rows !== this.rows) {
-        console.log('Resizing terminal to geometry: ' + format_geometry(cols, rows));
+        console.log('Resizing terminal to geometry: ' + formatGeometry(cols, rows));
         this.resize(cols, rows);
         sock.send(JSON.stringify({'resize': [cols, rows]}));
       }
@@ -548,39 +549,31 @@ jQuery(function($){
     return obj;
   }
 
-  function cleanData(data) {
-    var i, attr, val;
-    var attrs = form_keys.concat(['privatekey', 'passphrase']);
-
-    for (i = 0; i < attrs.length; i++) {
-      attr = attrs[i];
-      val = data.get(attr);
+  //Trim values in data
+  function trimData(data) {
+    fields.forEach(function(attr){
+      var val = data.get(attr)
       if (typeof val === 'string') {
         data.set(attr, val.trim());
       }
-    }
+    })
   }
 
   function validateFormData(data) {
-    cleanData(data);
+    trimData(data);
 
     var hostname = data.get('hostname'),
         port = data.get('port'),
         username = data.get('username'),
-        pk = data.get('privatekey'),
         result = {
           valid: false,
           data: data,
           title: ''
         },
-        errors = [], size;
+        errors = [];
 
     if (!hostname) {
       errors.push('Value of hostname is required.');
-    } else {
-      if (!hostname_tester.test(hostname)) {
-         errors.push('Invalid hostname: ' + hostname);
-      }
     }
 
     if (!port) {
@@ -595,13 +588,6 @@ jQuery(function($){
       errors.push('Value of username is required.');
     }
 
-    if (pk) {
-      size = pk.size || pk.length;
-      if (size > key_max_size) {
-        errors.push('Invalid private key: ' + pk.name || '');
-      }
-    }
-
     if (!errors.length || debug) {
       result.valid = true;
       result.title = username + '@' + hostname + ':'  + port;
@@ -611,41 +597,16 @@ jQuery(function($){
     return result;
   }
 
-  // Fix empty input file ajax submission error for safari 11.x
-  function disable_file_inputs(inputs) {
-    var i, input;
-
-    for (i = 0; i < inputs.length; i++) {
-      input = inputs[i];
-      if (input.files.length === 0) {
-        input.setAttribute('disabled', '');
-      }
-    }
-  }
-
-  function enable_file_inputs(inputs) {
-    var i;
-
-    for (i = 0; i < inputs.length; i++) {
-      inputs[i].removeAttribute('disabled');
-    }
-  }
-
   function connect_without_options() {
     // use data from the form
     var form = document.querySelector(formID),
-        inputs = form.querySelectorAll('input[type="file"]'),
-        url = form.action,
-        data, pk;
+        url = form.action, data;
 
-    disable_file_inputs(inputs);
     data = new FormData(form);
-    pk = data.get('privatekey');
-    enable_file_inputs(inputs);
 
     function ajax_post() {
       status.text('');
-      button.prop('disabled', true);
+      submitBtn.attr('disabled', true)
 
       $.ajax({
           url: url,
@@ -663,18 +624,7 @@ jQuery(function($){
       logStatus(result.errors.join('\n'));
       return;
     }
-
-    if (pk && pk.size && !debug) {
-      read_file_as_text(pk, function(text) {
-        if (text === undefined) {
-            logStatus('Invalid private key: ' + pk.name);
-        } else {
-          ajax_post();
-        }
-      });
-    } else {
-      ajax_post();
-    }
+    ajax_post();
 
     return result;
   }
@@ -698,7 +648,7 @@ jQuery(function($){
     }
 
     status.text('');
-    button.prop('disabled', true);
+    submitBtn.attr('disabled', true)
 
     $.ajax({
         url: url,
@@ -711,7 +661,6 @@ jQuery(function($){
   }
 
   function connect(hostname, port, username, password, privatekey, passphrase, totp) {
-    // for console use
     var result, opts;
 
     if (state !== DISCONNECTED) {
@@ -720,8 +669,10 @@ jQuery(function($){
     }
 
     if (hostname === undefined) {
+      console.log("6666666666666666666666666")
       result = connect_without_options();
     } else {
+      console.log("777777777777777777777")
       if (typeof hostname === 'string') {
         opts = {
           hostname: hostname,
@@ -762,6 +713,7 @@ jQuery(function($){
     var file = this.files[0]
     console.log(typeof(file))
     console.log("shiiiiiiiiiiiiiiit")
+    console.log(WebSocket.url)
     console.log(file.name)
     console.log(file.size)
     console.log(file.type)
@@ -839,8 +791,8 @@ jQuery(function($){
     );
   }
 
-  parse_url_data(
-    decode_uri(window.location.search.substring(1)) + '&' + decode_uri(window.location.hash.substring(1)),
+  parseUrlData(
+    decodeUri(window.location.search.substring(1)) + '&' + decodeUri(window.location.hash.substring(1)),
     form_keys, opts_keys, url_form_data, url_opts_data
   );
 

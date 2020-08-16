@@ -23,7 +23,8 @@ class Term1nal(tornado.web.Application):
             websocket_ping_interval=conf.ws_ping,
             debug=conf.debug,
             xsrf_cookies=conf.xsrf,
-            origin_policy=conf.origin
+            origin_policy=conf.origin,
+            cookie_secret="_Valar_Morghulis_Valar_Dohaeris_"
         )
 
         settings["template_path"] = os.path.join(BASE_DIR, 'templates')

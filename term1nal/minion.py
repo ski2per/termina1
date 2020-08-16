@@ -4,10 +4,10 @@ from tornado.ioloop import IOLoop
 from tornado.iostream import _ERRNO_CONNRESET
 from tornado.util import errno_from_exception
 from term1nal.utils import LOG
+from term1nal.utils import GRU
 
 
 BUFFER_SIZE = 64 * 1024
-clients = {}  # {ip: {id: minion}}
 
 
 class Minion:
@@ -43,7 +43,7 @@ class Minion:
             self.loop.call_later(0.1, self, self.fd, IOLoop.WRITE)
 
     def on_read(self):
-        print(f"------------clients:{clients}")
+        print(f"------------GRU:{GRU}")
         LOG.debug('minion {} on read'.format(self.id))
         try:
             data = self.chan.recv(BUFFER_SIZE)
@@ -103,20 +103,20 @@ class Minion:
         self.ssh.close()
         LOG.info('Connection to {}:{} lost'.format(*self.dst_addr))
 
-        clear_minion(self, clients)
-        LOG.debug(clients)
+        clear_minion(self, GRU)
+        LOG.debug(GRU)
 
 
-def clear_minion(minion, clients):
+def clear_minion(minion, GRU):
     ip = minion.src_addr[0]
-    minions = clients.get(ip)
+    minions = GRU.get(ip)
     assert minion.id in minions
     minions.pop(minion.id)
 
     if not minions:
-        clients.pop(ip)
-        if not clients:
-            clients.clear()
+        GRU.pop(ip)
+        if not GRU:
+            GRU.clear()
 
 
 def recycle_minion(minion):

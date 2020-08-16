@@ -12,7 +12,7 @@ from tornado.process import cpu_count
 from term1nal.conf import conf
 from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, \
      UnicodeType, is_valid_encoding
-from term1nal.minion import Minion, recycle_minion, clients
+from term1nal.minion import Minion, recycle_minion, GRU
 from term1nal.utils import LOG
 
 try:
@@ -68,9 +68,6 @@ class MixinHandler:
         return value
 
     def get_client_endpoint(self) -> set:
-        print(f"!!!!!!!!!: {type(self.context.address)}")
-        print(self.context.address)
-
         return self.get_real_client_addr() or self.context.address[:2]
 
     def get_real_client_addr(self):
@@ -91,7 +88,6 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
     def initialize(self, loop):
         super(IndexHandler, self).initialize(loop=loop)
-        print(f"@@@@@@@ IDX connection.context: {self.context.address}")
         self.ssh_client = self.get_ssh_client()
         self.debug = self.settings.get('debug', False)
         self.result = dict(id=None, status=None, encoding=None)
@@ -198,7 +194,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
     @tornado.gen.coroutine
     def post(self):
         ip, port = self.get_client_endpoint()
-        minions = clients.get(ip, {})
+        minions = GRU.get(ip, {})
         if minions and len(minions) >= conf.max_conn:
             raise tornado.web.HTTPError(403, 'too many connections')
 
@@ -216,12 +212,14 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
             self.result.update(status=str(exc))
         else:
             if not minions:
-                clients[ip] = minions
+                GRU[ip] = minions
             minion.src_addr = (ip, port)
             minions[minion.id] = minion
             self.loop.call_later(conf.delay or DELAY, recycle_minion,
                                  minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
+
+        print(f"IndexHandler, post result: {self.result}")
 
         self.write(self.result)
 
@@ -231,13 +229,15 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
     def initialize(self, loop):
         super(WSHandler, self).initialize(loop=loop)
         print(f"@@@@@@@ WS connection.context: {self.context.address}")
+        print(GRU)
         self.minion_ref = None
 
     def open(self):
         self.src_addr = self.get_client_endpoint()
         LOG.info('Connected from {}:{}'.format(*self.src_addr))
 
-        minions = clients.get(self.src_addr[0])
+        print(f"GRU: {GRU}")
+        minions = GRU.get(self.src_addr[0])
         if not minions:
             self.close(reason='Websocket authentication failed.')
             return

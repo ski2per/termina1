@@ -5,8 +5,9 @@ import logging
 from tornado.log import enable_pretty_logging
 from urllib.parse import urlparse
 
-
 enable_pretty_logging()
+
+GRU = {}
 
 def get_logging_level():
     """ Return logging level by the value of environment variable"""

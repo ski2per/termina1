@@ -330,6 +330,7 @@ class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
 
     def get(self):
         remote_file_path = self.get_query_value("filepath")
+        print(remote_file_path)
         minion_id = self.get_value("minion")
         print(f"minion ID: {minion_id}")
         client_ip = self.get_client_endpoint()[0]
@@ -341,6 +342,7 @@ class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
         except FileNotFoundError as err:
             LOG.error(err)
             raise tornado.web.HTTPError(404)
+            return
 
         filename = os.path.basename(remote_file_path)
         local_file = os.path.join("/tmp", minion_id, filename)

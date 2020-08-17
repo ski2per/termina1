@@ -770,7 +770,28 @@ jQuery(function($){
       return
     }
     info.text("文件中转中...")
-    window.location = `download?filepath=${file}&minion=${getSession("minion")}`
+
+    fetch(`download?filepath=${file}&minion=${getSession("minion")}`)
+    .then((resp) =>{
+      if (!resp.ok) {
+        alert(`${file} not exist`)
+      } else {
+        resp.blob().then((blob) => {
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.style.display = 'none';
+          a.href = url;
+          a.download = file.split('/').pop();
+          document.body.appendChild(a);
+          a.click();
+          window.URL.revokeObjectURL(url)
+        })
+      }
+    })
+    .catch((err) => {
+      alert(err)
+    })
+    // window.location = `download?filepath=${file}&minion=${getSession("minion")}`
   }); // #download.click()
 
   function cross_origin_connect(event)

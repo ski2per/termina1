@@ -39,6 +39,7 @@ jQuery(function($){
   var status = $('#status'),
       formID = '#ssh_cred',
       submitBtn = $('#submit'),
+      info = $('#info'),
       form_container = $('.form-container'),
       toolbar = $('#toolbar'),
       progress = $("#progress"),
@@ -136,8 +137,6 @@ jQuery(function($){
   }
 
   function parseUrlData(string, form_keys, opts_keys, form_map, opts_map) {
-    console.log("88888888888888888888")
-    console.log(string)
     var i, pair, key, val,
         arr = string.split('&');
 
@@ -345,7 +344,6 @@ jQuery(function($){
       state = DISCONNECTED;
       return;
     } else {
-      console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@")
       setSession("minion", msg.id)
     }
 
@@ -684,10 +682,8 @@ jQuery(function($){
     }
 
     if (hostname === undefined) {
-      console.log("6666666666666666666666666")
       result = connect_without_options();
     } else {
-      console.log("777777777777777777777")
       if (typeof hostname === 'string') {
         opts = {
           hostname: hostname,
@@ -726,13 +722,6 @@ jQuery(function($){
   // monitor "progress" event to calculate uploading percentage
   $("#upload").change(function(){
     var file = this.files[0]
-    console.log(typeof(file))
-    console.log("shiiiiiiiiiiiiiiit")
-    console.log(WebSocket.url)
-    console.log(file.name)
-    console.log(file.size)
-    console.log(file.type)
-
     var formData = new FormData()
     formData.append("upload", file)
     formData.append("minion", getSession("minion"))
@@ -753,16 +742,18 @@ jQuery(function($){
           theXHR.upload.addEventListener('progress', function(e){
             if(e.lengthComputable){
               percent = Math.ceil(e.loaded / e.total * 100);
-              console.log(percent);
               $(progress).attr("value", percent);
+              if(percent == 100) {
+                progress.hide();
+                info.text("上传完成，文件中转中...");
+              }
             }
           }, false);
         }
         return theXHR;
       },
       success: function(data) {
-        progress.hide()
-        console.log("uploaded")
+        info.text(data)
       },
       error: function(error) {
         progress.hide()
@@ -777,29 +768,8 @@ jQuery(function($){
       alert("empty")
       return
     }
-    // // formData.append("filepath", file)
-    // formData.append("minion", getSession("minion"))
-
-    // $.ajax({
-    //   url: '/download',
-    //   type: 'GET',
-    //   data: {
-    //     filepath: file,
-    //     minion: getSession("minion")
-    //   },
-    //   cache: false,
-    //   contentType: false,
-    //   // processData: false,
-    //   timeout: 60000,
-    //   success: function(data) {
-    //     console.log(`#download.click: ${data}`)
-    //   },
-    //   error: function(error) {},
-    // });
+    info.text("文件中转中...")
     window.location = `download?filepath=${file}&minion=${getSession("minion")}`
-
-    
-
   }); // #download.click()
 
   function cross_origin_connect(event)

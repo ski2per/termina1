@@ -1,3 +1,4 @@
+import shutil
 import os
 import re
 import ipaddress
@@ -234,5 +235,8 @@ def stage1_copy(minion_id, dst, *args):
 
     sftp = get_sftp_client(*args)
     sftp.get(dst, os.path.join(local_dir, file_name))
+
+def rm_dir(dir):
+    shutil.rmtree(dir)
 
 

@@ -14,7 +14,7 @@ from term1nal.conf import conf
 from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, \
      UnicodeType, is_valid_encoding
 from term1nal.minion import Minion, recycle_minion, GRU
-from term1nal.utils import LOG, make_sure_dir, stage2_copy, stage1_copy
+from term1nal.utils import LOG, make_sure_dir, stage2_copy, stage1_copy, rm_dir
 
 try:
     from json.decoder import JSONDecodeError
@@ -302,8 +302,6 @@ class UploadHandler(MixinHandler, tornado.web.RequestHandler):
 
     def post(self):
         minion_id = self.get_value("minion")
-        print(f"minion ID: {minion_id}")
-        print(self.get_client_endpoint())
         client_ip = self.get_client_endpoint()[0]
         gru = GRU.get(client_ip, {})
         args = gru[minion_id]["args"]
@@ -311,7 +309,6 @@ class UploadHandler(MixinHandler, tornado.web.RequestHandler):
 
         file = self.request.files["upload"][0]
         original_filename = file["filename"]
-        print(original_filename)
         file_path = f"/tmp/{minion_id}/{original_filename}"
 
 
@@ -321,7 +318,11 @@ class UploadHandler(MixinHandler, tornado.web.RequestHandler):
 
         stage2_copy(file_path, *args)
 
-        self.finish(f"file {original_filename} is uploaded")
+        # self.finish(f"中转完成，目标位置: /tmp/{original_filename}")
+        self.finish(f"/tmp/{original_filename}")
+        print("upload ended")
+        rm_dir(f"/tmp/{minion_id}")
+
 
 class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
     def initialize(self, loop):
@@ -344,4 +345,8 @@ class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
         self.set_header("Content-Disposition", f"attachment; filename={filename}")
         with open(local_file, "rb") as f:
             self.write(f.read())
+
+        print("download ended")
+        rm_dir(f"/tmp/{minion_id}")
+
 

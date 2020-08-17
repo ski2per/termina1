@@ -50,16 +50,18 @@
                 <input id="upload" type="file"></input>
               </label>
             </div>
-            <div class="col-11">
+            <div class="col-5">
               <progress id="progress" class="nes-progress is-success is-dark" value="0" max="100"></progress>
+            </div>
+            <div class="col-6 top-spaced">
+              <span id="info" class="nes-text is-warning"></span>
             </div>
           </div>
           <!-- Download -->
           <div class="row">
             <div class="col">
               <div style="background-color:black; padding: 1rem;" class="nes-field is-inline">
-                <!-- <label for="dark_field" style="color:#fff;">Input file path to download</label> -->
-                <input type="text" id="downloadFile" class="nes-input is-dark" placeholder="Input file path to download">
+                <input type="text" id="downloadFile" class="nes-input is-dark" placeholder="输入要下载文件的绝对路径">
               </div>
             </div>
             <div class="col">

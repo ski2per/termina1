@@ -37,7 +37,7 @@ body {
 
 .xterm.fullscreen {
     position:fixed;
-    top:200px;
+    top:240px;
     bottom:0;
     left:0;
     right:0;
@@ -54,7 +54,7 @@ body {
     left:0;
     right:10px;
     width:auto;
-    height:200px;
+    height:240px;
     z-index:255;
     background-color: black;
 }
@@ -74,3 +74,6 @@ body {
     margin-top: 20px;
 }
 
+.top-spaced {
+    padding-top: 40px;
+}

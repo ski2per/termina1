@@ -734,6 +734,7 @@ jQuery(function($){
       contentType: false,
       processData: false,
       timeout: 60000,
+      async: true,
 
       xhr: function() {
         var theXHR = $.ajaxSettings.xhr();
@@ -765,7 +766,7 @@ jQuery(function($){
   $("#download").click(function(){
     file = $("#downloadFile").val()
     if (file === "") {
-      alert("empty")
+      alert("Input file path")
       return
     }
     info.text("文件中转中...")

@@ -6,6 +6,7 @@ import paramiko
 import logging
 import socket
 from paramiko.ssh_exception import AuthenticationException, SSHException
+from tornado.web import HTTPError
 from tornado.log import enable_pretty_logging
 from urllib.parse import urlparse
 
@@ -235,6 +236,7 @@ def stage1_copy(minion_id, dst, *args):
 
     sftp = get_sftp_client(*args)
     sftp.get(dst, os.path.join(local_dir, file_name))
+
 
 def rm_dir(dir):
     shutil.rmtree(dir)

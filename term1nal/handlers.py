@@ -336,15 +336,26 @@ class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
         gru = GRU.get(client_ip, {})
         args = gru[minion_id]["args"]
 
-        stage1_copy(minion_id, remote_file_path, *args)
+        try:
+            stage1_copy(minion_id, remote_file_path, *args)
+        except FileNotFoundError as err:
+            LOG.error(err)
+            raise tornado.web.HTTPError(404)
 
         filename = os.path.basename(remote_file_path)
         local_file = os.path.join("/tmp", minion_id, filename)
 
         self.set_header("Content-Type", "application/octet-stream")
         self.set_header("Content-Disposition", f"attachment; filename={filename}")
-        with open(local_file, "rb") as f:
-            self.write(f.read())
+        # with open(local_file, "rb") as f:
+        #     self.write(f.read())
+        with open(local_file, 'rb') as f:
+            while True:
+                data = f.read(4096)
+                if not data:
+                    break
+                self.write(data)
+
 
         print("download ended")
         rm_dir(f"/tmp/{minion_id}")

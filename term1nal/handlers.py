@@ -11,8 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from tornado.ioloop import IOLoop
 from tornado.process import cpu_count
 from term1nal.conf import conf
-from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, \
-     UnicodeType, is_valid_encoding
+from term1nal.utils import to_str, UnicodeType, is_valid_encoding
 from term1nal.minion import Minion, recycle_minion, GRU
 from term1nal.utils import LOG, make_sure_dir, stage2_copy, stage1_copy, rm_dir
 
@@ -20,7 +19,6 @@ try:
     from json.decoder import JSONDecodeError
 except ImportError:
     JSONDecodeError = ValueError
-
 
 DELAY = 3
 DEFAULT_PORT = 22
@@ -64,6 +62,7 @@ class MixinHandler:
 
     def get_value(self, name):
         value = self.get_argument(name)
+        print(f"value: {value}")
         if not value:
             raise InvalidValueError('Missing value {}'.format(name))
         return value
@@ -117,25 +116,9 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         ssh.set_missing_host_key_policy(paramiko.client.WarningPolicy)
         return ssh
 
-    def get_hostname(self):
-        value = self.get_value('hostname')
-        if not (is_valid_hostname(value) or is_valid_ip_address(value)):
-            raise InvalidValueError('Invalid hostname: {}'.format(value))
-        return value
-
-    def get_port(self):
-        value = self.get_argument('port', u'')
-        if not value:
-            return DEFAULT_PORT
-
-        port = int(value)
-        if port is None or not is_valid_port(port):
-            raise InvalidValueError('Invalid port: {}'.format(value))
-        return port
-
     def get_args(self):
-        hostname = self.get_hostname()
-        port = self.get_port()
+        hostname = self.get_value('hostname')
+        port = int(self.get_value('port'))
         username = self.get_value('username')
         password = self.get_argument('password', u'')
         args = (hostname, port, username, password)
@@ -222,8 +205,8 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
                 GRU[ip] = minions
             minion.src_addr = (ip, port)
             minions[minion.id] = {
-               "minion": minion,
-               "args": args
+                "minion": minion,
+                "args": args
             }
             self.loop.call_later(conf.delay or DELAY, recycle_minion, minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
@@ -306,11 +289,9 @@ class UploadHandler(MixinHandler, tornado.web.RequestHandler):
         gru = GRU.get(client_ip, {})
         args = gru[minion_id]["args"]
 
-
         file = self.request.files["upload"][0]
         original_filename = file["filename"]
         file_path = f"/tmp/{minion_id}/{original_filename}"
-
 
         make_sure_dir(f"/tmp/{minion_id}")
         with open(file_path, "wb") as f:
@@ -358,8 +339,5 @@ class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
                     break
                 self.write(data)
 
-
         print("download ended")
         rm_dir(f"/tmp/{minion_id}")
-
-

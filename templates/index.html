@@ -41,16 +41,32 @@
             <button type="reset" class="nes-btn is-error">Reset</button>
           </form>
         </div>
-        <div id="toolbar" class="row">
-          <div class="col-1">
-            <label class="nes-btn">
-              <span>Upload</span>
-              <input id="upload" type="file"></input>
-            </label>
+        <div id="toolbar">
+          <!-- Upload -->
+          <div class="row">
+            <div class="col">
+              <label class="nes-btn is-success">
+                <span>Upload</span>
+                <input id="upload" type="file"></input>
+              </label>
+            </div>
+            <div class="col">
+              <progress id="progress" class="nes-progress is-success is-dark" value="0" max="100"></progress>
+            </div>
           </div>
-          <div class="col-4">
-            <progress id="progress" class="nes-progress is-success is-dark" value="0" max="100"></progress>
+          <!-- Download -->
+          <div class="row">
+            <div class="col">
+              <div style="background-color:black; padding: 1rem;" class="nes-field is-inline">
+                <!-- <label for="dark_field" style="color:#fff;">Input file path to download</label> -->
+                <input type="text" id="downloadFile" class="nes-input is-dark" placeholder="Input file path to download">
+              </div>
+            </div>
+            <div class="col">
+              <button type="button" id="download" class="nes-btn is-warning">Download</button>
+            </div>
           </div>
+
 
         </div>
         <div id="terminal"></div>

@@ -1,12 +1,22 @@
 import os
 import re
 import ipaddress
+import paramiko
 import logging
+import socket
+from paramiko.ssh_exception import AuthenticationException, SSHException
 from tornado.log import enable_pretty_logging
 from urllib.parse import urlparse
 
 enable_pretty_logging()
 
+# GRU =  {
+#     '172.16.66.66': {
+#         '140580981443160': {
+#             'minion': <term1nal.minion.Minion object at 0x7fdb8f760a58>,
+#             'args': ('172.16.66.10', 22, 'root', 'P@ssw0rd')}
+#     }
+# }
 GRU = {}
 
 def get_logging_level():
@@ -189,3 +199,25 @@ def get_ssl_context(options):
 def check_encoding_setting(encoding):
     if encoding and not is_valid_encoding(encoding):
         raise ValueError('Unknown character encoding {!r}.'.format(encoding))
+
+
+def get_sftp_client(*args):
+    host, port, username, password = args
+    try:
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.WarningPolicy())
+        client.connect(hostname=host, port=port, username=username, password=password)
+        sftp = client.open_sftp()
+        return sftp
+
+    except (AuthenticationException, SSHException, socket.error) as err:
+        print(err)
+
+
+def stage2_copy(src, *args):
+    filename = os.path.basename(src)
+    sftp = get_sftp_client(*args)
+    sftp.put(src, os.path.join("/tmp", filename))
+
+
+# def stage1_copy(dst, *args):

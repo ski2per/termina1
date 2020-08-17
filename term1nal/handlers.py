@@ -1,3 +1,4 @@
+import os
 import json
 import socket
 import struct
@@ -13,7 +14,7 @@ from term1nal.conf import conf
 from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, \
      UnicodeType, is_valid_encoding
 from term1nal.minion import Minion, recycle_minion, GRU
-from term1nal.utils import LOG
+from term1nal.utils import LOG, stage2_copy
 
 try:
     from json.decoder import JSONDecodeError
@@ -200,23 +201,26 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
         try:
             args = self.get_args()
-        except InvalidValueError as exc:
-            raise tornado.web.HTTPError(400, str(exc))
+            print(f"args: {args}")
+        except InvalidValueError as err:
+            raise tornado.web.HTTPError(400, str(err))
 
         future = self.executor.submit(self.ssh_connect, args)
 
         try:
             minion = yield future
-        except (ValueError, paramiko.SSHException) as exc:
+        except (ValueError, paramiko.SSHException) as err:
             LOG.error(traceback.format_exc())
-            self.result.update(status=str(exc))
+            self.result.update(status=str(err))
         else:
             if not minions:
                 GRU[ip] = minions
             minion.src_addr = (ip, port)
-            minions[minion.id] = minion
-            self.loop.call_later(conf.delay or DELAY, recycle_minion,
-                                 minion)
+            minions[minion.id] = {
+               "minion": minion,
+               "args": args
+            }
+            self.loop.call_later(conf.delay or DELAY, recycle_minion, minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
 
         print(f"IndexHandler, post result: {self.result}")
@@ -228,8 +232,8 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
 
     def initialize(self, loop):
         super(WSHandler, self).initialize(loop=loop)
+
         print(f"@@@@@@@ WS connection.context: {self.context.address}")
-        print(GRU)
         self.minion_ref = None
 
     def open(self):
@@ -246,12 +250,12 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
             minion_id = self.get_value('id')
             print(f"############ minion id: {minion_id}")
 
-        except (tornado.web.MissingArgumentError, InvalidValueError) as exc:
-            self.close(reason=str(exc))
+        except (tornado.web.MissingArgumentError, InvalidValueError) as err:
+            self.close(reason=str(err))
         else:
-            minion = minions.get(minion_id)
+            minion = minions.get(minion_id)["minion"]
             if minion:
-                minions[minion_id] = None
+                minions[minion_id]["minion"] = None
                 self.set_nodelay(True)
                 minion.set_handler(self)
                 self.minion_ref = weakref.ref(minion)
@@ -292,17 +296,36 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
             minion.close(reason=self.close_reason)
 
 
-class UploadHandler(tornado.web.RequestHandler):
-    def initialize(self):
-        print(self.request.connection.context.address)
+class UploadHandler(MixinHandler, tornado.web.RequestHandler):
+    def initialize(self, loop):
+        super(UploadHandler, self).initialize(loop=loop)
 
     def post(self):
+        minion_id = self.get_argument("minion")
+        print(f"minion ID: {minion_id}")
+        print(self.get_client_endpoint())
+        client_ip = self.get_client_endpoint()[0]
+
+        gru = GRU.get(client_ip, {})
+        print(gru)
+        args = gru[minion_id]["args"]
+
+
         file = self.request.files["upload"][0]
         original_filename = file["filename"]
         print(original_filename)
-        print(self.get_secure_cookie("minion"))
-        # with open(f"/tmp/{original_filename}", "wb") as f:
-        #     f.write(file["body"])
-        # self.finish(f"file {original_filename} is uploaded")
-        self.finish(original_filename)
+        file_path = f"/tmp/{minion_id}/{original_filename}"
+
+
+        try:
+            os.mkdir(f"/tmp/{minion_id}")
+        except FileExistsError:
+            pass
+
+        with open(file_path, "wb") as f:
+            f.write(file["body"])
+
+        stage2_copy(file_path, *args)
+
+        self.finish(f"file {original_filename} is uploaded")
 

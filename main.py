@@ -15,7 +15,7 @@ class Term1nal(tornado.web.Application):
         handlers = [
             (r"/", IndexHandler, dict(loop=loop)),
             (r"/ws", WSHandler, dict(loop=loop)),
-            (r"/upload", UploadHandler)
+            (r"/upload", UploadHandler, dict(loop=loop))
         ]
 
         settings = dict(

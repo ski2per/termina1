@@ -56,8 +56,8 @@ jQuery(function($){
       state = DISCONNECTED,
       messages = {1: 'This client is connecting ...', 2: 'This client is already connnected.'},
       key_max_size = 16384,
-      fields = ['hostname', 'port', 'username', 'password'],
-      form_keys = fields.concat(['totp']),
+      fields = ['hostname', 'port', 'username'],
+      form_keys = fields.concat(['password', 'totp']),
       opts_keys = ['bgcolor', 'title', 'encoding', 'command', 'term'],
       url_form_data = {},
       url_opts_data = {},
@@ -88,6 +88,17 @@ jQuery(function($){
         $('#'+name).val(value);
       }
     }
+  }
+
+  function setSession(name, data) {
+    window.sessionStorage.clear()
+    console.log(window.sessionStorage)
+    window.sessionStorage.setItem(name, data)
+    console.log(window.sessionStorage)
+  }
+
+  function getSession(name) {
+    return window.sessionStorage.getItem(name)
   }
 
   function populateForm(data) {
@@ -319,7 +330,7 @@ jQuery(function($){
     }
   }
 
-  function ajax_complete_callback(resp) {
+  function ajaxCompleteCallback(resp) {
     submitBtn.attr('disabled', false)
 
     if (resp.status !== 200) {
@@ -333,8 +344,12 @@ jQuery(function($){
       logStatus(msg.status, true);
       state = DISCONNECTED;
       return;
+    } else {
+      console.log("@@@@@@@@@@@@@@@@@@@@@@@@@@")
+      setSession("minion", msg.id)
     }
 
+    // Prepare websocket
     var ws_url = window.location.href.split(/\?|#/, 1)[0].replace('http', 'ws'),
         join = (ws_url[ws_url.length-1] === '/' ? '' : '/'),
         url = ws_url + join + 'ws?id=' + msg.id,
@@ -612,7 +627,7 @@ jQuery(function($){
           url: url,
           type: 'post',
           data: data,
-          complete: ajax_complete_callback,
+          complete: ajaxCompleteCallback,
           cache: false,
           contentType: false,
           processData: false
@@ -654,7 +669,7 @@ jQuery(function($){
         url: url,
         type: 'post',
         data: data,
-        complete: ajax_complete_callback
+        complete: ajaxCompleteCallback
     });
 
     return result;
@@ -720,6 +735,7 @@ jQuery(function($){
 
     var formData = new FormData()
     formData.append("upload", file)
+    formData.append("minion", getSession("minion"))
 
     $.ajax({
       url: '/upload',

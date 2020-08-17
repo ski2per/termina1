@@ -1,4 +1,4 @@
-import os
+import os.path
 import json
 import socket
 import struct
@@ -14,7 +14,7 @@ from term1nal.conf import conf
 from term1nal.utils import is_valid_ip_address, is_valid_port, is_valid_hostname, to_bytes, to_str, \
      UnicodeType, is_valid_encoding
 from term1nal.minion import Minion, recycle_minion, GRU
-from term1nal.utils import LOG, stage2_copy
+from term1nal.utils import LOG, make_sure_dir, stage2_copy, stage1_copy
 
 try:
     from json.decoder import JSONDecodeError
@@ -64,6 +64,12 @@ class MixinHandler:
 
     def get_value(self, name):
         value = self.get_argument(name)
+        if not value:
+            raise InvalidValueError('Missing value {}'.format(name))
+        return value
+
+    def get_query_value(self, name):
+        value = self.get_query_argument(name)
         if not value:
             raise InvalidValueError('Missing value {}'.format(name))
         return value
@@ -201,7 +207,6 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
 
         try:
             args = self.get_args()
-            print(f"args: {args}")
         except InvalidValueError as err:
             raise tornado.web.HTTPError(400, str(err))
 
@@ -223,8 +228,6 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
             self.loop.call_later(conf.delay or DELAY, recycle_minion, minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
 
-        print(f"IndexHandler, post result: {self.result}")
-
         self.write(self.result)
 
 
@@ -232,15 +235,12 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
 
     def initialize(self, loop):
         super(WSHandler, self).initialize(loop=loop)
-
-        print(f"@@@@@@@ WS connection.context: {self.context.address}")
         self.minion_ref = None
 
     def open(self):
         self.src_addr = self.get_client_endpoint()
         LOG.info('Connected from {}:{}'.format(*self.src_addr))
 
-        print(f"GRU: {GRU}")
         minions = GRU.get(self.src_addr[0])
         if not minions:
             self.close(reason='Websocket authentication failed.')
@@ -248,7 +248,7 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
 
         try:
             minion_id = self.get_value('id')
-            print(f"############ minion id: {minion_id}")
+            LOG.debug(f"############ minion id: {minion_id}")
 
         except (tornado.web.MissingArgumentError, InvalidValueError) as err:
             self.close(reason=str(err))
@@ -301,13 +301,11 @@ class UploadHandler(MixinHandler, tornado.web.RequestHandler):
         super(UploadHandler, self).initialize(loop=loop)
 
     def post(self):
-        minion_id = self.get_argument("minion")
+        minion_id = self.get_value("minion")
         print(f"minion ID: {minion_id}")
         print(self.get_client_endpoint())
         client_ip = self.get_client_endpoint()[0]
-
         gru = GRU.get(client_ip, {})
-        print(gru)
         args = gru[minion_id]["args"]
 
 
@@ -317,15 +315,33 @@ class UploadHandler(MixinHandler, tornado.web.RequestHandler):
         file_path = f"/tmp/{minion_id}/{original_filename}"
 
 
-        try:
-            os.mkdir(f"/tmp/{minion_id}")
-        except FileExistsError:
-            pass
-
+        make_sure_dir(f"/tmp/{minion_id}")
         with open(file_path, "wb") as f:
             f.write(file["body"])
 
         stage2_copy(file_path, *args)
 
         self.finish(f"file {original_filename} is uploaded")
+
+class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
+    def initialize(self, loop):
+        super(DownloadHandler, self).initialize(loop=loop)
+
+    def get(self):
+        remote_file_path = self.get_query_value("filepath")
+        minion_id = self.get_value("minion")
+        print(f"minion ID: {minion_id}")
+        client_ip = self.get_client_endpoint()[0]
+        gru = GRU.get(client_ip, {})
+        args = gru[minion_id]["args"]
+
+        stage1_copy(minion_id, remote_file_path, *args)
+
+        filename = os.path.basename(remote_file_path)
+        local_file = os.path.join("/tmp", minion_id, filename)
+
+        self.set_header("Content-Type", "application/octet-stream")
+        self.set_header("Content-Disposition", f"attachment; filename={filename}")
+        with open(local_file, "rb") as f:
+            self.write(f.read())
 

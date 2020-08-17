@@ -769,7 +769,38 @@ jQuery(function($){
         console.log(error)
       }
     }); //.ajax()
-  }); //change()
+  }); // #upload.change()
+
+  $("#download").click(function(){
+    file = $("#downloadFile").val()
+    if (file === "") {
+      alert("empty")
+      return
+    }
+    // // formData.append("filepath", file)
+    // formData.append("minion", getSession("minion"))
+
+    // $.ajax({
+    //   url: '/download',
+    //   type: 'GET',
+    //   data: {
+    //     filepath: file,
+    //     minion: getSession("minion")
+    //   },
+    //   cache: false,
+    //   contentType: false,
+    //   // processData: false,
+    //   timeout: 60000,
+    //   success: function(data) {
+    //     console.log(`#download.click: ${data}`)
+    //   },
+    //   error: function(error) {},
+    // });
+    window.location = `download?filepath=${file}&minion=${getSession("minion")}`
+
+    
+
+  }); // #download.click()
 
   function cross_origin_connect(event)
   {

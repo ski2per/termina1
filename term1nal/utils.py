@@ -214,10 +214,25 @@ def get_sftp_client(*args):
         print(err)
 
 
+def make_sure_dir(dir):
+    try:
+        os.mkdir(dir)
+    except FileExistsError:
+        pass
+
+
 def stage2_copy(src, *args):
     filename = os.path.basename(src)
     sftp = get_sftp_client(*args)
     sftp.put(src, os.path.join("/tmp", filename))
 
+def stage1_copy(minion_id, dst, *args):
+    local_dir = f"/tmp/{minion_id}"
+    make_sure_dir(local_dir)
 
-# def stage1_copy(dst, *args):
+    file_name = os.path.basename(dst)
+
+    sftp = get_sftp_client(*args)
+    sftp.get(dst, os.path.join(local_dir, file_name))
+
+

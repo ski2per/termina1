@@ -2,7 +2,7 @@ import os.path
 import tornado.web
 import tornado.ioloop
 from term1nal.conf import conf
-from term1nal.handlers import IndexHandler, WSHandler, UploadHandler
+from term1nal.handlers import IndexHandler, WSHandler, UploadHandler, DownloadHandler
 from term1nal.utils import get_ssl_context, check_encoding_setting, LOG
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -15,7 +15,8 @@ class Term1nal(tornado.web.Application):
         handlers = [
             (r"/", IndexHandler, dict(loop=loop)),
             (r"/ws", WSHandler, dict(loop=loop)),
-            (r"/upload", UploadHandler, dict(loop=loop))
+            (r"/upload", UploadHandler, dict(loop=loop)),
+            (r"/download", DownloadHandler, dict(loop=loop))
         ]
 
         settings = dict(

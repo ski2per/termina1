@@ -44,9 +44,8 @@ class Conf(dict):
 
 
 conf = Conf()
-conf.host = os.getenv("TERM_HOST", "")
+conf.host = os.getenv("TERM_HOST", "0.0.0.0")
 conf.port = int(os.getenv("TERM_PORT", 8000))
-conf.ssl_host = os.getenv("TERM_SSL_HOST", 0)
 conf.ssl_port = int(os.getenv("TERM_SSL_PORT", 4433))
 conf.cert_file = os.getenv("TERM_CERT_FILE", "")
 conf.key_file = os.getenv("TERM_KEY_FILE", "")

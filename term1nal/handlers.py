@@ -63,7 +63,6 @@ class MixinHandler:
 
     def get_value(self, name):
         value = self.get_argument(name)
-        print(f"value: {value}")
         if not value:
             raise InvalidValueError('Missing value {}'.format(name))
         return value

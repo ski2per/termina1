@@ -1,6 +1,7 @@
-import shutil
 import os
 import re
+import ssl
+import shutil
 import ipaddress
 import paramiko
 import logging
@@ -132,9 +133,9 @@ def get_ssl_context(options):
     elif not options.key_file:
         raise ValueError('key_file is not provided')
     elif not os.path.isfile(options.cert_file):
-        raise ValueError('File {!r} does not exist'.format(options.cert_file))
+        raise ValueError(f'File {options.cert_file} does not exist')
     elif not os.path.isfile(options.key_file):
-        raise ValueError('File {!r} does not exist'.format(options.key_file))
+        raise ValueError(f'File {options.key_file} does not exist')
     else:
         ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_ctx.load_cert_chain(options.cert_file, options.key_file)

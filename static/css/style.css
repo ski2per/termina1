@@ -35,15 +35,15 @@ body {
     /* font-family: "Hack"; */
 }
 
-.xterm.fullscreen {
+.terminal.fullscreen {
     position:fixed;
-    top:240px;
+    top:0;
     bottom:0;
     left:0;
     right:0;
     width:auto;
     height:auto;
-    z-index:255;
+    z-index:253;
 }
 
 
@@ -54,8 +54,8 @@ body {
     left:0;
     right:0;
     width:auto;
-    height:240px;
-    z-index:255;
+    height:220px;
+    z-index:254;
     background-color: black;
 }
 
@@ -69,11 +69,17 @@ body {
     margin-left: 20px;
     /* background-color: white; */
 }
-
-#download {
+/* #downloadFile {
     margin-top: 20px;
-}
+} */
 
 .top-spaced {
     padding-top: 40px;
+}
+
+.float {
+    position: fixed;
+    right: 10px;
+    top:20px;
+    z-index: 255;
 }

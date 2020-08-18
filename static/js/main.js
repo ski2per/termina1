@@ -42,6 +42,7 @@ jQuery(function($){
       info = $('#info'),
       form_container = $('.form-container'),
       toolbar = $('#toolbar'),
+      toggle = $('#toggle'),
       progress = $("#progress"),
       // upload = $("#uploader"),
       term_type = $('#term'),
@@ -66,6 +67,7 @@ jQuery(function($){
       event_origin
 
   toolbar.hide()
+  toggle.hide()
 
   function storeItems(names, data) {
     var i, name, value;
@@ -172,7 +174,7 @@ jQuery(function($){
 
   function toggleFullscreen(term) {
     $('#terminal .terminal').toggleClass('fullscreen');
-    $('#toolbar .toolbar').toggleClass('fullscreen');
+    // $('#toolbar .toolbar').toggleClass('fullscreen');
     term.fitAddon.fit();
   }
 
@@ -502,9 +504,9 @@ jQuery(function($){
     });
 
     sock.onopen = function() {
-      // Show toolbar
-      toolbar.show();
-      progress.hide();
+      toggle.toggle()
+      // toolbar.show();
+      // progress.hide();
 
       term.open(terminal);
       toggleFullscreen(term);
@@ -529,7 +531,8 @@ jQuery(function($){
 
     sock.onclose = function(e) {
       // Hide toolbar again
-      toolbar.hide()
+      toolbar.hide();
+      toggle.hide();
 
       term.dispose();
       term = undefined;
@@ -793,6 +796,16 @@ jQuery(function($){
     })
     // window.location = `download?filepath=${file}&minion=${getSession("minion")}`
   }); // #download.click()
+
+  toggle.click(function(){
+    console.log(progress.is(":visible"));
+    if(progress.is(":visible")) {
+      progress.hide()
+    }
+    progress.toggle();
+    toolbar.toggle();
+    info.text("")
+  })
 
   function cross_origin_connect(event)
   {

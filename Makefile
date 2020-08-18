@@ -9,13 +9,21 @@ ifeq ($(TAG),)
 	TAG=latest
 endif
 
+ifeq ($(findstring dirty,$(TAG)), dirty)
+	TAG=latest
+endif
+
+
 
 clean:
 	@echo "clean"
 
 ## Create a docker image on disk for a specific arch and tag
 image:
+	@cp templates/index.html templates/index.html.bak
+	@sed -i "s/VERSION/$(TAG)/" templates/index.html
 	docker build -f Dockerfile -t $(REGISTRY):$(TAG) .
+	@mv templates/index.html.bak templates/index.html
 
 push: image
 	docker push $(REGISTRY):$(TAG)

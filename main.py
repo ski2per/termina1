@@ -35,8 +35,6 @@ class Term1nal(tornado.web.Application):
 
 
 def setup_listening(app, port, address, server_settings):
-    print(port)
-    print(address)
     app.listen(port, address, **server_settings)
     if not server_settings.get('ssl_options'):
         server_type = 'http'
@@ -53,12 +51,10 @@ def main():
         xheaders=True,
         max_body_size=1000 * 1024 * 1024,  # 1G
     )
-    setup_listening(app, conf.port, conf.address, server_settings)
+    app.listen(conf.port, conf.address, **server_settings)
     if ssl_ctx:
         server_settings.update(ssl_options=ssl_ctx)
-        print(server_settings)
-        print(conf)
-        setup_listening(app, conf.ssl_port, conf.host, server_settings)
+        app.listen(conf.ssl_port, conf.host, **server_settings)
     loop.start()
 
 

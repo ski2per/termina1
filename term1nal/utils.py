@@ -22,6 +22,7 @@ enable_pretty_logging()
 # }
 GRU = {}
 
+
 def get_logging_level():
     """ Return logging level by the value of environment variable"""
     log_dict = {
@@ -57,38 +58,6 @@ def to_str(bstr, encoding='utf-8'):
     if isinstance(bstr, bytes):
         return bstr.decode(encoding)
     return bstr
-
-
-def to_bytes(ustr, encoding='utf-8'):
-    if isinstance(ustr, UnicodeType):
-        return ustr.encode(encoding)
-    return ustr
-
-
-def to_int(string):
-    try:
-        return int(string)
-    except (TypeError, ValueError):
-        pass
-
-
-def to_ip_address(ipstr):
-    ip = to_str(ipstr)
-    if ip.startswith('fe80::'):
-        ip = ip.split('%')[0]
-    return ipaddress.ip_address(ip)
-
-
-def is_valid_ip_address(ipstr):
-    try:
-        to_ip_address(ipstr)
-    except ValueError:
-        return False
-    return True
-
-
-def is_valid_port(port):
-    return 0 < port < 65536
 
 
 def is_valid_encoding(encoding):
@@ -185,5 +154,3 @@ def stage1_copy(minion_id, dst, *args):
 
 def rm_dir(dir):
     shutil.rmtree(dir)
-
-

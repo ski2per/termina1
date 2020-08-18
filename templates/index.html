@@ -13,7 +13,7 @@
     <div class="row">
       <div class="col">
         <div class="nes-container with-title">
-          <p class="title">To Telecom IDC</p>
+          <p class="title">Terminal To Telecom IDC - v1.0.1</p>
           <form id="ssh_cred" action="" method="post" enctype="multipart/form-data"{% if debug %} novalidate{% end %}>
             <div class="row">
               <div class="col">
@@ -41,7 +41,7 @@
             <button type="reset" class="nes-btn is-error">Reset</button>
           </form>
         </div>
-        <div id="toolbar" class="nes-container">
+        <div id="toolbar">
           <!-- Upload -->
           <div class="row">
             <div class="col-1">
@@ -59,12 +59,12 @@
           </div>
           <!-- Download -->
           <div class="row">
-            <div class="col">
+            <div class="col-10">
               <div style="background-color:black; padding: 1rem;" class="nes-field is-inline">
                 <input type="text" id="downloadFile" class="nes-input is-dark" placeholder="输入要下载文件的绝对路径">
               </div>
             </div>
-            <div class="col">
+            <div class="col-2">
               <button type="button" id="download" class="nes-btn is-warning">Download</button>
             </div>
           </div>

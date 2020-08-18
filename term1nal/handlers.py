@@ -7,8 +7,9 @@ import weakref
 import paramiko
 import tornado.web
 
-from concurrent.futures import ThreadPoolExecutor
+from tornado import iostream
 from tornado.ioloop import IOLoop
+from concurrent.futures import ThreadPoolExecutor
 from tornado.process import cpu_count
 from term1nal.conf import conf
 from term1nal.utils import to_str, UnicodeType, is_valid_encoding
@@ -309,7 +310,9 @@ class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(DownloadHandler, self).initialize(loop=loop)
 
-    def get(self):
+    async def get(self):
+        chunk_size = 1024 * 1024 * 1  # 1 MiB
+
         remote_file_path = self.get_query_value("filepath")
         print(remote_file_path)
         minion_id = self.get_value("minion")
@@ -334,10 +337,20 @@ class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
         #     self.write(f.read())
         with open(local_file, 'rb') as f:
             while True:
-                data = f.read(4096)
-                if not data:
+                chunk = f.read(chunk_size)
+                if not chunk:
                     break
-                self.write(data)
+                try:
+                    # write the chunk to response
+                    self.write(chunk)
+                    # send the chunk to client
+                    await self.flush()
+                except iostream.StreamClosedError:
+                    break
+                finally:
+                    del chunk
+                    await tornado.web.gen.sleep(0.000000001)  # 1 nanosecond
+
 
         print("download ended")
         rm_dir(f"/tmp/{minion_id}")

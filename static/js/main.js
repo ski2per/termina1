@@ -366,6 +366,16 @@ jQuery(function($){
 
     term.fitAddon = new window.FitAddon.FitAddon();
     term.loadAddon(term.fitAddon);
+    // term.attachCustomKeyEventHandler(function(event) {
+    //   event.preventDefault(); 
+    //   if(event.ctrlKey && event.keyCode == 87) { 
+    //     console.log("Hey! Ctrl+W event captured!");
+    //   }
+    //   if(event.ctrlKey && event.keyCode == 68) { 
+    //     console.log("Hey! Ctrl+D event captured!");
+    //     event.preventDefault(); 
+    //   }
+    // });
 
     console.log(url);
     if (!msg.encoding) {
@@ -714,6 +724,30 @@ jQuery(function($){
     }
   }
 
+  function cross_origin_connect(event)
+  {
+    console.log(event.origin);
+    var prop = 'connect',
+        args;
+
+    try {
+      args = JSON.parse(event.data);
+    } catch (SyntaxError) {
+      args = event.data.split('|');
+    }
+
+    if (!Array.isArray(args)) {
+      args = [args];
+    }
+
+    try {
+      event_origin = event.origin;
+      wterm[prop].apply(wterm, args);
+    } finally {
+      event_origin = undefined;
+    }
+  }
+
   wterm.connect = connect;
 
   $(formID).submit(function(event){
@@ -807,31 +841,11 @@ jQuery(function($){
     info.text("")
   })
 
-  function cross_origin_connect(event)
-  {
-    console.log(event.origin);
-    var prop = 'connect',
-        args;
-
-    try {
-      args = JSON.parse(event.data);
-    } catch (SyntaxError) {
-      args = event.data.split('|');
-    }
-
-    if (!Array.isArray(args)) {
-      args = [args];
-    }
-
-    try {
-      event_origin = event.origin;
-      wterm[prop].apply(wterm, args);
-    } finally {
-      event_origin = undefined;
-    }
-  }
-
   window.addEventListener('message', cross_origin_connect, false);
+  $(window).on('beforeunload', function() {
+    // Use 'beforeunload' to prevent "ctrl+W" from closing browser tab
+    return "bye";
+  });
 
   if (document.fonts) {
     document.fonts.ready.then(

@@ -12,15 +12,9 @@ var wterm = {};
   if (!proto.get) {
     proto.get = function (name) {
       if (data[name] === undefined) {
-        var input = document.querySelector('input[name="' + name + '"]'),
-            value;
+        var input = document.querySelector(`input[name="${name}"]`), value;
         if (input) {
-          if (input.type === 'file') {
-            value = input.files[0];
-          } else {
-            value = input.value;
-          }
-          data[name] = value;
+          data[name] = input.value;
         }
       }
       return data[name];

@@ -2,6 +2,7 @@
 
 # Registry used for publishing images
 REGISTRY?=docker.cetcxl.local/terminal
+VERSION_FILE=templates/index.html
 
 # Default tag and architecture. Can be overridden
 TAG?=$(shell git describe --tags --dirty)
@@ -20,10 +21,10 @@ clean:
 
 ## Create a docker image on disk for a specific arch and tag
 image:
-	@cp templates/index.html templates/index.html.bak
-	@sed -i "s/VERSION/$(TAG)/" templates/index.html
+	@cp $(VERSION_FILE) "$(VERSION_FILE).bak"
+	@sed -i "s/VERSION/$(TAG)/" $(VERSION_FILE)
 	docker build -f Dockerfile -t $(REGISTRY):$(TAG) .
-	@mv templates/index.html.bak templates/index.html
+	@mv "$(VERSION_FILE).bak" $(VERSION_FILE)
 
 push: image
 	docker push $(REGISTRY):$(TAG)

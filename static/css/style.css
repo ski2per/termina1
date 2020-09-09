@@ -1,37 +1,23 @@
 @font-face {
     font-family: "Press Start 2P";
-    /*src: url("../fonts/PressStart2P-Regular.ttf");*/
     src: url("../fonts/PressStart2P-Regular.ttf");
 }
 
 @font-face {
     font-family: "Hack";
-    /*src: url("../fonts/PressStart2P-Regular.ttf");*/
     src: url("../fonts/Hack-Regular.ttf");
 }
 
-/* .row {
-    margin-top: 15px;
-    margin-bottom: 10px;
+@font-face {
+    font-family: "Zpix";
+    src: url("../fonts/Zpix.ttf");
 }
-
-.container {
-    margin-top: 20px;
-}
-
-.btn {
-    margin-top: 15px;
-}
-
-.btn-danger {
-    margin-left: 5px;
-} */
 
 body {
     padding-top: 10px;
     padding-right: 10px;
     padding-left: 10px;
-    font-family: "Press Start 2P";
+    font-family: "Press Start 2P", Zpix;
     /* font-family: "Hack"; */
 }
 

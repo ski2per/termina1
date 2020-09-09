@@ -23,7 +23,7 @@ clean:
 image:
 	@cp $(VERSION_FILE) "$(VERSION_FILE).bak"
 	@sed -i "s/VERSION/$(TAG)/" $(VERSION_FILE)
-	docker build -f Dockerfile -t $(REGISTRY):$(TAG) .
+	docker build --no-cache -f Dockerfile -t $(REGISTRY):$(TAG) .
 	@mv "$(VERSION_FILE).bak" $(VERSION_FILE)
 
 push: image

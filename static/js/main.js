@@ -38,7 +38,7 @@ jQuery(function($){
       toolbar = $('#toolbar'),
       toggle = $('#toggle'),
       progress = $("#progress"),
-      // upload = $("#uploader"),
+      // uploader = $("#upload"),
       term_type = $('#term'),
       style = {},
       default_title = '',
@@ -749,6 +749,11 @@ jQuery(function($){
     connect();
   });
 
+  $("#upload").click(function(){
+    // Clean this for triggering change event for same file
+    this.value = "";
+  });
+
   // Listen to "file" change event to upload file,
   // monitor "progress" event to calculate uploading percentage
   $("#upload").change(function(){
@@ -785,7 +790,7 @@ jQuery(function($){
         return theXHR;
       },
       success: function(data) {
-        info.text(data)
+        info.text(data);
       },
       error: function(error) {
         progress.hide()

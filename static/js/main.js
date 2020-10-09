@@ -34,31 +34,31 @@ jQuery(function($){
       formID = '#ssh_cred',
       submitBtn = $('#submit'),
       info = $('#info'),
-      form_container = $('.form-container'),
+      formContainer = $('.form-container'),
       toolbar = $('#toolbar'),
       toggle = $('#toggle'),
       progress = $("#progress"),
       // uploader = $("#upload"),
-      term_type = $('#term'),
+      termType = $('#term'),
       style = {},
-      default_title = '',
-      title_element = document.querySelector('title'),
+      defaultTitle = '',
+      titleElement = document.querySelector('title'),
       debug = document.querySelector(formID).noValidate,
-      custom_font = document.fonts ? document.fonts.values().next().value : undefined,
-      default_fonts,
+      customFont = document.fonts ? document.fonts.values().next().value : undefined,
+      defaultFonts,
       DISCONNECTED = 0,
       CONNECTING = 1,
       CONNECTED = 2,
       state = DISCONNECTED,
       messages = {1: 'This client is connecting ...', 2: 'This client is already connnected.'},
-      key_max_size = 16384,
+      maxKeySize = 16384,
       fields = ['hostname', 'port', 'username'],
-      form_keys = fields.concat(['password', 'totp']),
-      opts_keys = ['bgcolor', 'title', 'encoding', 'command', 'term'],
-      url_form_data = {},
-      url_opts_data = {},
-      validated_form_data,
-      event_origin
+      formKeys = fields.concat(['password', 'totp']),
+      optsKeys = ['bgcolor', 'title', 'encoding', 'command', 'term'],
+      urlFormData = {},
+      urlOptsData = {},
+      validatedFormData,
+      eventOrigin
 
   toolbar.hide()
   toggle.hide()
@@ -99,7 +99,7 @@ jQuery(function($){
   }
 
   function populateForm(data) {
-    var names = form_keys.concat(['passphrase']),
+    var names = formKeys.concat(['passphrase']),
         i, name;
 
     console.log("in populateForm")
@@ -123,7 +123,7 @@ jQuery(function($){
     return '';
   }
 
-  function decode_password(encoded) {
+  function decodePassword(encoded) {
     try {
       return window.atob(encoded);
     } catch (e) {
@@ -149,7 +149,7 @@ jQuery(function($){
     }
 
     if (form_map.password) {
-      form_map.password = decode_password(form_map.password);
+      form_map.password = decodePassword(form_map.password);
     }
   }
 
@@ -198,14 +198,14 @@ jQuery(function($){
   }
 
   function isCustomFontLoaded() {
-    if (!custom_font) {
+    if (!customFont) {
       console.log('No custom font specified.');
     } else {
-      console.log('Status of custom font ' + custom_font.family + ': ' + custom_font.status);
-      if (custom_font.status === 'loaded') {
+      console.log('Status of custom font ' + customFont.family + ': ' + customFont.status);
+      if (customFont.status === 'loaded') {
         return true;
       }
-      if (custom_font.status === 'unloaded') {
+      if (customFont.status === 'unloaded') {
         return false;
       }
     }
@@ -217,13 +217,13 @@ jQuery(function($){
       return;
     }
 
-    if (!default_fonts) {
-      default_fonts = term.getOption('fontFamily');
+    if (!defaultFonts) {
+      defaultFonts = term.getOption('fontFamily');
     }
 
     if (isCustomFontLoaded()) {
-       var new_fonts =  custom_font.family + ', ' + default_fonts;
-      var new_fonts =  "Hack" + ', ' + default_fonts;
+       var new_fonts =  customFont.family + ', ' + defaultFonts;
+      var new_fonts =  "Hack" + ', ' + defaultFonts;
       term.setOption('fontFamily', new_fonts);
       term.font_family_updated = true;
       console.log('Using custom font family ' + new_fonts);
@@ -236,10 +236,10 @@ jQuery(function($){
       return;
     }
 
-    if (default_fonts) {
-      term.setOption('fontFamily',  default_fonts);
+    if (defaultFonts) {
+      term.setOption('fontFamily',  defaultFonts);
       term.font_family_updated = false;
-      console.log('Using default font family ' + default_fonts);
+      console.log('Using default font family ' + defaultFonts);
     }
   }
 
@@ -247,7 +247,7 @@ jQuery(function($){
     return JSON.stringify({'cols': cols, 'rows': rows});
   }
 
-  function read_as_text_with_decoder(file, callback, decoder) {
+  function readTextWithDecoder(file, callback, decoder) {
     var reader = new window.FileReader();
 
     if (decoder === undefined) {
@@ -274,7 +274,7 @@ jQuery(function($){
     reader.readAsArrayBuffer(file);
   }
 
-  function read_as_text_with_encoding(file, callback, encoding) {
+  function readTextWithEncoding(file, callback, encoding) {
     var reader = new window.FileReader();
 
     if (encoding === undefined) {
@@ -294,11 +294,11 @@ jQuery(function($){
     reader.readAsText(file, encoding);
   }
 
-  function read_file_as_text(file, callback, decoder) {
+  function readFileAsText(file, callback, decoder) {
     if (!window.TextDecoder) {
-      read_as_text_with_encoding(file, callback, decoder);
+      readTextWithEncoding(file, callback, decoder);
     } else {
-      read_as_text_with_decoder(file, callback, decoder);
+      readTextWithDecoder(file, callback, decoder);
     }
   }
 
@@ -315,13 +315,13 @@ jQuery(function($){
   function logStatus(text, to_populate) {
     status.html(text.split('\n').join('<br/>'));
 
-    if (to_populate && validated_form_data) {
-      populateForm(validated_form_data);
-      validated_form_data = undefined;
+    if (to_populate && validatedFormData) {
+      populateForm(validatedFormData);
+      validatedFormData = undefined;
     }
 
-    if (form_container.css('display') === 'none') {
-      form_container.show();
+    if (formContainer.css('display') === 'none') {
+      formContainer.show();
     }
   }
 
@@ -354,7 +354,7 @@ jQuery(function($){
         term = new window.Terminal({
           cursorBlink: true,
           theme: {
-            background: url_opts_data.bgcolor || 'black'
+            background: urlOptsData.bgcolor || 'black'
           }
         });
 
@@ -414,8 +414,8 @@ jQuery(function($){
 
     wterm.setEncoding = setEncoding;
 
-    if (url_opts_data.encoding) {
-      if (setEncoding(url_opts_data.encoding) === false) {
+    if (urlOptsData.encoding) {
+      if (setEncoding(urlOptsData.encoding) === false) {
         setEncoding(msg.encoding);
       }
     } else {
@@ -517,16 +517,16 @@ jQuery(function($){
       updateFontFamily(term);
       term.focus();
       state = CONNECTED;
-      title_element.text = url_opts_data.title || default_title;
-      if (url_opts_data.command) {
+      titleElement.text = urlOptsData.title || defaultTitle;
+      if (urlOptsData.command) {
         setTimeout(function () {
-          sock.send(JSON.stringify({'data': url_opts_data.command+'\r'}));
+          sock.send(JSON.stringify({'data': urlOptsData.command+'\r'}));
         }, 500);
       }
     };
 
     sock.onmessage = function(msg) {
-      read_file_as_text(msg.data, termWrite, decoder);
+      readFileAsText(msg.data, termWrite, decoder);
     };
 
     sock.onerror = function(e) {
@@ -544,8 +544,8 @@ jQuery(function($){
       resetWssh();
       logStatus(e.reason, true);
       state = DISCONNECTED;
-      default_title = 'Term1nal';
-      title_element.text = default_title;
+      defaultTitle = 'Term1nal';
+      titleElement.text = defaultTitle;
     };
 
     $(window).resize(function(){
@@ -661,10 +661,10 @@ jQuery(function($){
       return;
     }
 
-    data.term = term_type.val();
+    data.term = termType.val();
     data._xsrf = _xsrf.value;
-    if (event_origin) {
-      data._origin = event_origin;
+    if (eventOrigin) {
+      data._origin = eventOrigin;
     }
 
     status.text('');
@@ -710,9 +710,9 @@ jQuery(function($){
 
     if (result) {
       state = CONNECTING;
-      default_title = result.title;
+      defaultTitle = result.title;
       if (hostname) {
-        validated_form_data = result.data;
+        validatedFormData = result.data;
       }
       storeItems(fields, result.data);
     }
@@ -735,10 +735,10 @@ jQuery(function($){
     }
 
     try {
-      event_origin = event.origin;
+      eventOrigin = event.origin;
       wterm[prop].apply(wterm, args);
     } finally {
-      event_origin = undefined;
+      eventOrigin = undefined;
     }
   }
 
@@ -850,7 +850,7 @@ jQuery(function($){
     document.fonts.ready.then(
       function () {
         if (isCustomFontLoaded() === false) {
-          document.body.style.fontFamily = custom_font.family;
+          document.body.style.fontFamily = customFont.family;
         }
       }
     );
@@ -858,21 +858,21 @@ jQuery(function($){
 
   parseUrlData(
     decodeUri(window.location.search.substring(1)) + '&' + decodeUri(window.location.hash.substring(1)),
-    form_keys, opts_keys, url_form_data, url_opts_data
+    formKeys, optsKeys, urlFormData, urlOptsData
   );
 
-  if (url_opts_data.term) {
-    term_type.val(url_opts_data.term);
+  if (urlOptsData.term) {
+    termType.val(urlOptsData.term);
   }
 
-  if (url_form_data.password === null) {
+  if (urlFormData.password === null) {
     logStatus('Password via url must be encoded in base64.');
   } else {
-    if (getObjectLength(url_form_data)) {
-      connect(url_form_data);
+    if (getObjectLength(urlFormData)) {
+      connect(urlFormData);
     } else {
       restoreItems(fields);
-      form_container.show();
+      formContainer.show();
     }
   }
 

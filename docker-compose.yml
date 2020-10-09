@@ -1,0 +1,13 @@
+version: '3.5'
+
+services:
+  terminal:
+    image: docker.cetcxl.local/terminal:latest
+    hostname: terminal
+    environment:
+      #- TERM_CERT_FILE=/ssl.crt
+      #- TERM_KEY_FILE=/ssl.key
+      - TERM_MAX_CONN=40
+    ports: 
+        - "4433:4433"
+    restart: always

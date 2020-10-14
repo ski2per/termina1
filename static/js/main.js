@@ -779,6 +779,7 @@ jQuery(function($){
           theXHR.upload.addEventListener('progress', function(e){
             if(e.lengthComputable){
               percent = Math.ceil(e.loaded / e.total * 100);
+              console.log(percent);
               $(progress).attr("value", percent);
               if(percent == 100) {
                 progress.hide();

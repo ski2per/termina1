@@ -775,27 +775,6 @@ jQuery(function($){
   }
 
 
-  function getSelectedText() {
-    console.log("heheheheheh");
-    var txt = '';
-    if (window.getSelection) {
-      console.log("1");
-      txt = window.getSelection();
-      console.log(txt);
-    } else if (document.getSelection) {
-      console.log("2");
-      txt = document.getSelection();
-      console.log(txt);
-    } else if (document.selection) {
-      console.log("3");
-      txt = document.selection.createRange().text;
-      console.log(txt);
-    } else {
-      console.log(txt);
-      return txt;
-    }
-  }
-
   wterm.connect = connect;
 
   $(formID).submit(function(event){
@@ -862,14 +841,15 @@ jQuery(function($){
     }
     info.text("文件中转中...")
 
+    // Chrome save dialog will open after file downloaded
     fetch(`download?filepath=${file}&minion=${getSession("minion")}`)
     .then((resp) =>{
       if (!resp.ok) {
         alert(`${file} not exist`)
       } else {
         resp.blob().then((blob) => {
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
+          let url = window.URL.createObjectURL(blob);
+          let a = document.createElement('a');
           a.style.display = 'none';
           a.href = url;
           a.download = file.split('/').pop();
@@ -882,7 +862,10 @@ jQuery(function($){
     .catch((err) => {
       alert(err)
     })
-    // window.location = `download?filepath=${file}&minion=${getSession("minion")}`
+
+    // With Chrome download progress
+    // window.location.href = `download?filepath=${file}&minion=${getSession("minion")}`
+    window.open(`download?filepath=${file}&minion=${getSession("minion")}`, '_blank');
   }); // #download.click()
 
   toggle.click(function(){
@@ -897,7 +880,8 @@ jQuery(function($){
 
 
   window.addEventListener('message', crossOriginConnect, false);
-  $(window).on('beforeunload', function() {
+  $(window).on('beforeunload', function(evt) {
+    console.log(evt);
     // Use 'beforeunload' to prevent "ctrl+W" from closing browser tab
     return "bye";
   });

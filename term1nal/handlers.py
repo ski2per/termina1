@@ -325,12 +325,15 @@ class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
         except FileNotFoundError as err:
             LOG.error(err)
             raise tornado.web.HTTPError(404)
-            return
 
         filename = os.path.basename(remote_file_path)
         local_file = os.path.join("/tmp", minion_id, filename)
 
+        file_size = os.path.getsize(local_file)
+
         self.set_header("Content-Type", "application/octet-stream")
+        self.set_header("Content-Length", file_size)
+        self.set_header("Accept-Ranges", "bytes")
         self.set_header("Content-Disposition", f"attachment; filename={filename}")
         # with open(local_file, "rb") as f:
         #     self.write(f.read())
@@ -350,6 +353,6 @@ class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
                     del chunk
                     await tornado.web.gen.sleep(0.000000001)  # 1 nanosecond
 
-
+        await self.finish()
         print("download ended")
         rm_dir(f"/tmp/{minion_id}")

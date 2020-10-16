@@ -326,7 +326,8 @@ jQuery(function($){
   }
 
   function ajaxCompleteCallback(resp) {
-    submitBtn.attr('disabled', false)
+    console.log("ajax");
+    submitBtn.attr('disabled', false);
 
     if (resp.status !== 200) {
       logStatus(resp.status + ': ' + resp.statusText, true);
@@ -350,7 +351,7 @@ jQuery(function($){
         sock = new window.WebSocket(url),
         encoding = 'utf-8',
         decoder = window.TextDecoder ? new window.TextDecoder(encoding) : encoding,
-        terminal = document.getElementById('terminal'),
+        terminal = document.getElementById('terminal')
         term = new window.Terminal({
           cursorBlink: true,
           theme: {
@@ -507,6 +508,37 @@ jQuery(function($){
       sock.send(JSON.stringify({'data': data}));
     });
 
+    // Copy on selection
+    window.addEventListener('mouseup', function(){
+      let el = document.createElement('textarea');
+      el.value = term.getSelection();
+      // document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      // document.body.removeChild(el);
+    });
+
+    // window.addEventListener('auxclick', function(evt){
+    //   evt.preventDefault();
+
+    //   if (evt.button == 1) {
+    //     console.log("middle click");
+    //     // let el = document.createElement('textarea');
+    //     // document.body.appendChild(el);
+    //     let el = term.textarea;
+    //     console.log(el);
+    //     el.focus();
+    //     document.execCommand("paste");
+    //     // console.log(el.textContent);
+    //     console.log(el.value);
+    //     // document.body.removeChild(el);
+    //   }
+    // });
+
+    // window.addEventListener('paste', (event) => {
+    //   console.log('paste action initiated')
+    // });
+
     sock.onopen = function() {
       toggle.toggle()
       // toolbar.show();
@@ -617,7 +649,7 @@ jQuery(function($){
     return result;
   }
 
-  function connect_without_options() {
+  function connectWithoutOptions() {
     // use data from the form
     var form = document.querySelector(formID),
         url = form.action, data;
@@ -649,7 +681,7 @@ jQuery(function($){
     return result;
   }
 
-  function connect_with_options(data) {
+  function connectWithOptions(data) {
     // use data from the arguments
     var form = document.querySelector(formID),
         url = data.url || form.action,
@@ -689,7 +721,7 @@ jQuery(function($){
     }
 
     if (hostname === undefined) {
-      result = connect_without_options();
+      result = connectWithoutOptions();
     } else {
       if (typeof hostname === 'string') {
         opts = {
@@ -705,7 +737,7 @@ jQuery(function($){
         opts = hostname;
       }
 
-      result = connect_with_options(opts);
+      result = connectWithOptions(opts);
     }
 
     if (result) {
@@ -718,7 +750,7 @@ jQuery(function($){
     }
   }
 
-  function cross_origin_connect(event)
+  function crossOriginConnect(event)
   {
     console.log(event.origin);
     var prop = 'connect',
@@ -739,6 +771,28 @@ jQuery(function($){
       wterm[prop].apply(wterm, args);
     } finally {
       eventOrigin = undefined;
+    }
+  }
+
+
+  function getSelectedText() {
+    console.log("heheheheheh");
+    var txt = '';
+    if (window.getSelection) {
+      console.log("1");
+      txt = window.getSelection();
+      console.log(txt);
+    } else if (document.getSelection) {
+      console.log("2");
+      txt = document.getSelection();
+      console.log(txt);
+    } else if (document.selection) {
+      console.log("3");
+      txt = document.selection.createRange().text;
+      console.log(txt);
+    } else {
+      console.log(txt);
+      return txt;
     }
   }
 
@@ -841,7 +895,8 @@ jQuery(function($){
     info.text("")
   })
 
-  window.addEventListener('message', cross_origin_connect, false);
+
+  window.addEventListener('message', crossOriginConnect, false);
   $(window).on('beforeunload', function() {
     // Use 'beforeunload' to prevent "ctrl+W" from closing browser tab
     return "bye";

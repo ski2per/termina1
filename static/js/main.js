@@ -864,8 +864,8 @@ jQuery(function($){
     })
 
     // With Chrome download progress
-    // window.location.href = `download?filepath=${file}&minion=${getSession("minion")}`
-    window.open(`download?filepath=${file}&minion=${getSession("minion")}`, '_blank');
+    // window.location.href = `download?filepath=${file}&minion=${getSession("minion")}`;
+    // window.open(`download?filepath=${file}&minion=${getSession("minion")}`);
   }); // #download.click()
 
   toggle.click(function(){

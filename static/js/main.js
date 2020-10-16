@@ -39,7 +39,7 @@ jQuery(function($){
       toggle = $('#toggle'),
       progress = $("#progress"),
       // uploader = $("#upload"),
-      termType = $('#term'),
+      terminal = $('#term'),
       style = {},
       defaultTitle = '',
       titleElement = document.querySelector('title'),
@@ -555,7 +555,7 @@ jQuery(function($){
     });
   }
 
-  function wrap_object(opts) {
+  function wrapObject(opts) {
     var obj = {};
 
     obj.get = function(attr) {
@@ -655,13 +655,13 @@ jQuery(function($){
         url = data.url || form.action,
         _xsrf = form.querySelector('input[name="_xsrf"]');
 
-    var result = validateFormData(wrap_object(data));
+    var result = validateFormData(wrapObject(data));
     if (!result.valid) {
       logStatus(result.errors.join('\n'));
       return;
     }
 
-    data.term = termType.val();
+    data.term = terminal.val();
     data._xsrf = _xsrf.value;
     if (eventOrigin) {
       data._origin = eventOrigin;
@@ -863,7 +863,7 @@ jQuery(function($){
   );
 
   if (urlOptsData.term) {
-    termType.val(urlOptsData.term);
+    terminal.val(urlOptsData.term);
   }
 
   if (urlFormData.password === null) {

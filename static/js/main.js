@@ -10,9 +10,9 @@ var wterm = {};
       data = {};
 
   if (!proto.get) {
-    proto.get = function (name) {
+    proto.get = function(name) {
       if (data[name] === undefined) {
-        var input = document.querySelector(`input[name="${name}"]`), value;
+        var input = document.querySelector(`input[name="${name}"]`);
         if (input) {
           data[name] = input.value;
         }
@@ -22,7 +22,7 @@ var wterm = {};
   }
 
   if (!proto.set) {
-    proto.set = function (name, value) {
+    proto.set = function(name, value) {
       data[name] = value;
     };
   }
@@ -31,7 +31,7 @@ var wterm = {};
 
 jQuery(function($){
   var status = $('#status'),
-      formID = '#ssh_cred',
+      formID = '#ssh-cred',
       submitBtn = $('#submit'),
       info = $('#info'),
       formContainer = $('.form-container'),
@@ -60,8 +60,18 @@ jQuery(function($){
       validatedFormData,
       eventOrigin
 
+  // Hide toolbar first
   toolbar.hide()
   toggle.hide()
+
+  function copySelectedText() {
+    let el = document.createElement('textarea');
+    el.value = term.getSelection();
+    // document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    // document.body.removeChild(el)
+  }
 
   function storeItems(names, data) {
     var i, name, value;
@@ -267,7 +277,7 @@ jQuery(function($){
       }
     };
 
-    reader.onerror = function (e) {
+    reader.onerror = function(e) {
       console.error(e);
     };
 
@@ -287,7 +297,7 @@ jQuery(function($){
       }
     };
 
-    reader.onerror = function (e) {
+    reader.onerror = function(e) {
       console.error(e);
     };
 
@@ -345,9 +355,9 @@ jQuery(function($){
     }
 
     // Prepare websocket
-    var ws_url = window.location.href.split(/\?|#/, 1)[0].replace('http', 'ws'),
-        join = (ws_url[ws_url.length-1] === '/' ? '' : '/'),
-        url = ws_url + join + 'ws?id=' + msg.id,
+    var wsURL = window.location.href.split(/\?|#/, 1)[0].replace('http', 'ws'),
+        join = (wsURL[wsURL.length-1] === '/' ? '' : '/'),
+        url = wsURL + join + 'ws?id=' + msg.id,
         sock = new window.WebSocket(url),
         encoding = 'utf-8',
         decoder = window.TextDecoder ? new window.TextDecoder(encoding) : encoding,
@@ -361,16 +371,6 @@ jQuery(function($){
 
     term.fitAddon = new window.FitAddon.FitAddon();
     term.loadAddon(term.fitAddon);
-    // term.attachCustomKeyEventHandler(function(event) {
-    //   event.preventDefault(); 
-    //   if(event.ctrlKey && event.keyCode == 87) { 
-    //     console.log("Hey! Ctrl+W event captured!");
-    //   }
-    //   if(event.ctrlKey && event.keyCode == 68) { 
-    //     console.log("Hey! Ctrl+D event captured!");
-    //     event.preventDefault(); 
-    //   }
-    // });
 
     console.log(url);
     if (!msg.encoding) {
@@ -509,35 +509,7 @@ jQuery(function($){
     });
 
     // Copy on selection
-    window.addEventListener('mouseup', function(){
-      let el = document.createElement('textarea');
-      el.value = term.getSelection();
-      // document.body.appendChild(el);
-      el.select();
-      document.execCommand('copy');
-      // document.body.removeChild(el);
-    });
-
-    // window.addEventListener('auxclick', function(evt){
-    //   evt.preventDefault();
-
-    //   if (evt.button == 1) {
-    //     console.log("middle click");
-    //     // let el = document.createElement('textarea');
-    //     // document.body.appendChild(el);
-    //     let el = term.textarea;
-    //     console.log(el);
-    //     el.focus();
-    //     document.execCommand("paste");
-    //     // console.log(el.textContent);
-    //     console.log(el.value);
-    //     // document.body.removeChild(el);
-    //   }
-    // });
-
-    // window.addEventListener('paste', (event) => {
-    //   console.log('paste action initiated')
-    // });
+    window.addEventListener('mouseup', copySelectedText);
 
     sock.onopen = function() {
       toggle.toggle()
@@ -551,7 +523,7 @@ jQuery(function($){
       state = CONNECTED;
       titleElement.text = urlOptsData.title || defaultTitle;
       if (urlOptsData.command) {
-        setTimeout(function () {
+        setTimeout(function() {
           sock.send(JSON.stringify({'data': urlOptsData.command+'\r'}));
         }, 500);
       }
@@ -578,10 +550,13 @@ jQuery(function($){
       state = DISCONNECTED;
       defaultTitle = 'Term1nal';
       titleElement.text = defaultTitle;
+
+      // Remove some event listeners
+      window.removeEventListener("mouseup", copySelectedText);
     };
 
     $(window).resize(function(){
-      if (term) {
+      if(term) {
         resizeTerminal(term);
       }
     });
@@ -888,7 +863,7 @@ jQuery(function($){
 
   if (document.fonts) {
     document.fonts.ready.then(
-      function () {
+      function() {
         if (isCustomFontLoaded() === false) {
           document.body.style.fontFamily = customFont.family;
         }

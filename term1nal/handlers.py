@@ -1,3 +1,4 @@
+import re
 import os.path
 import json
 import socket
@@ -87,6 +88,73 @@ class CommonMixin:
             return
         port = int(port)
         return ip, port
+
+
+class StreamUploadMixin():
+    content_type = None
+    boundary = None
+    fh = None
+    context = {}
+
+    def get_boundary(self):
+        self.content_type = self.request.headers.get('Content-Type', '')
+        match = re.match('.*;\sboundary="?(?P<boundary>.*)"?$', self.content_type.strip())
+        if match:
+            return match.group('boundary')
+        else:
+            return None
+    def get_info_from_header(self):
+        pass
+
+    def write_part(self):
+        pass
+
+    def data_received(self, data):
+        if not self.boundary:
+            self.boundary = self.get_boundary()
+        # print(self.boundary)
+
+        sep = f'--{self.boundary}'
+        chunks = data.split(sep.encode())
+        for chunk in chunks:
+            chunk_length = len(chunk)
+            # print(chunk)
+
+            if chunk_length == 0:
+                # Beginning, just ignore
+                pass
+            elif chunk_length == 4:
+                # End, close file handler(or similar object)
+                pass
+            else:
+                header, _ , part = chunk.partition('\r\n\r\n'.encode())
+
+                if part:
+                    print("-----------")
+                    str = header.decode('utf-8').strip()
+                    if 'upload' in str:
+                        print(header)
+                        # print(header)
+                    elif 'minion' in str:
+                        print(part)
+                else:
+                    print("===========")
+                    # print(header)
+
+                    # part is empty, means header is continuation of part
+                # print(header)
+                # print(part)
+                # print(len(part))
+                # try:
+                #     print(len(header))
+                #     print(header.decode('utf-8'))
+                # except UnicodeDecodeError:
+                #     print(len(header))
+                #     print(len(part))
+
+                # print(type(part))
+                # print(part)
+
 
 
 class IndexHandler(CommonMixin, tornado.web.RequestHandler):
@@ -279,14 +347,12 @@ class WSHandler(CommonMixin, tornado.websocket.WebSocketHandler):
             minion.close(reason=self.close_reason)
 
 
-class UploadHandler(CommonMixin, tornado.web.RequestHandler):
+@tornado.web.stream_request_body
+class UploadHandler(StreamUploadMixin, CommonMixin, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(UploadHandler, self).initialize(loop=loop)
 
     async def post(self):
-        print(self.request.headers)
-        print(self.request.headers.get('Content-Type'))
-
         minion_id = self.get_value("minion")
         client_ip = self.get_client_endpoint()[0]
         gru = GRU.get(client_ip, {})

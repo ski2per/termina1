@@ -767,8 +767,8 @@ jQuery(function($){
   $("#upload").change(function(){
     var file = this.files[0]
     var formData = new FormData()
-    formData.append("upload", file)
     formData.append("minion", getSession("minion"))
+    formData.append("upload", file)
 
     $.ajax({
       url: '/upload',

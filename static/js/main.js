@@ -844,11 +844,12 @@ jQuery(function($){
   }); // #download.click()
 
   toggle.click(function(){
-    console.log(progress.is(":visible"));
-    if(progress.is(":visible")) {
-      progress.hide()
-    }
-    progress.toggle();
+//    console.log(progress.is(":visible"));
+//    if(progress.is(":visible")) {
+//      progress.hide()
+//    }
+//    progress.toggle();
+    progress.hide();
     toolbar.toggle();
     info.text("")
   })

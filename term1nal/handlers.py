@@ -90,10 +90,11 @@ class CommonMixin:
         return ip, port
 
 
-class StreamUploadMixin():
+class StreamUploadMixin:
     content_type = None
     boundary = None
     fh = None
+    minion_id = None
     context = {}
 
     def get_boundary(self):
@@ -103,6 +104,7 @@ class StreamUploadMixin():
             return match.group('boundary')
         else:
             return None
+
     def get_info_from_header(self):
         pass
 
@@ -112,34 +114,52 @@ class StreamUploadMixin():
     def data_received(self, data):
         if not self.boundary:
             self.boundary = self.get_boundary()
-        # print(self.boundary)
 
         sep = f'--{self.boundary}'
         chunks = data.split(sep.encode())
+        print(chunks)
+
+        # return
         for chunk in chunks:
             chunk_length = len(chunk)
-            # print(chunk)
 
             if chunk_length == 0:
                 # Beginning, just ignore
                 pass
             elif chunk_length == 4:
                 # End, close file handler(or similar object)
-                pass
+                self.fh.close()
             else:
-                header, _ , part = chunk.partition('\r\n\r\n'.encode())
+                header, _, part = chunk.partition('\r\n\r\n'.encode())
 
                 if part:
-                    print("-----------")
-                    str = header.decode('utf-8').strip()
-                    if 'upload' in str:
-                        print(header)
-                        # print(header)
-                    elif 'minion' in str:
-                        print(part)
+                    header_text = header.decode('utf-8').strip()
+                    if 'minion' in header_text:
+                        self.minion_id = part.decode('utf-8').strip()
+
+                    if 'upload' in header_text:
+                        m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
+                        if m:
+                            filename = m.group('filename')
+                        else:
+                            filename = 'untitled'
+                        self.fh = open(f'/tmp/{filename}', 'wb')
+
+                        dat, _, _ = part.rpartition('\r\n'.encode())
+                        self.fh.write(dat)
                 else:
-                    print("===========")
+                    # print(chunk.strip('\r\n'.encode()))
+                    # self.fh.write(part)
+                    # print(part)
+                    # print(chunk)
                     # print(header)
+                    # self.fh.write(header.strip('\r\n'.encode()))
+                    # print(chunk)
+                    # print(chunk.strip('\\r\\n'.encode()))
+                    print(chunk[:-2])
+                    dat, _, _ = chunk.rpartition('\r\n'.encode())
+                    self.fh.write(dat)
+
 
                     # part is empty, means header is continuation of part
                 # print(header)
@@ -351,16 +371,18 @@ class WSHandler(CommonMixin, tornado.websocket.WebSocketHandler):
 class UploadHandler(StreamUploadMixin, CommonMixin, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(UploadHandler, self).initialize(loop=loop)
+        print(self.request.headers.get('Content-Length'))
 
     async def post(self):
-        minion_id = self.get_value("minion")
+        # minion_id = self.get_value("minion")
         client_ip = self.get_client_endpoint()[0]
+        print(client_ip)
         gru = GRU.get(client_ip, {})
-        args = gru[minion_id]["args"]
+        args = gru[self.minion_id]["args"]
 
         file = self.request.files["upload"][0]
         original_filename = file["filename"]
-        file_path = f"/tmp/{minion_id}/{original_filename}"
+        file_path = f"/tmp/{self.minion_id}/{original_filename}"
 
         # with paramiko.SSHClient() as ssh:
         #     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -373,16 +395,16 @@ class UploadHandler(StreamUploadMixin, CommonMixin, tornado.web.RequestHandler):
         #         channel.exec_command(f'cat > /tmp/wtf')
         #         channel.sendall(file['body'])
 
-        make_sure_dir(f"/tmp/{minion_id}")
-        with open(file_path, "wb") as f:
-            f.write(file["body"])
-        print("bar")
-        stage2_copy(file_path, *args)
+        # make_sure_dir(f"/tmp/{self.minion_id}")
+        # with open(file_path, "wb") as f:
+        #     f.write(file["body"])
+        # print("bar")
+        # stage2_copy(file_path, *args)
 
         # await run_async_func(stage2_copy, file_path, *args)
 
         # self.finish(f"中转完成，目标位置: /tmp/{original_filename}")
-        await self.finish(f"/tmp/{original_filename}")
+        # await self.finish(f"/tmp/{original_filename}")
         print("upload ended")
         # rm_dir(f"/tmp/{minion_id}")
 

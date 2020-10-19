@@ -2,12 +2,12 @@ import os
 import re
 import ssl
 import shutil
-import ipaddress
 import paramiko
 import logging
 import socket
+import asyncio
+import concurrent.futures
 from paramiko.ssh_exception import AuthenticationException, SSHException
-from tornado.web import HTTPError
 from tornado.log import enable_pretty_logging
 from urllib.parse import urlparse
 
@@ -154,3 +154,9 @@ def stage1_copy(minion_id, dst, *args):
 
 def rm_dir(dir):
     shutil.rmtree(dir)
+
+async def run_async_func(func, *args):
+    loop = asyncio.get_running_loop()
+    with concurrent.futures.ThreadPoolExecutor() as pool:
+        result = await loop.run_in_executor(pool, func, *args)
+        return result

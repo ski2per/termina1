@@ -14,7 +14,7 @@ from tornado.process import cpu_count
 from term1nal.conf import conf
 from term1nal.utils import to_str, UnicodeType, is_valid_encoding
 from term1nal.minion import Minion, recycle_minion, GRU
-from term1nal.utils import LOG, make_sure_dir, stage2_copy, stage1_copy, rm_dir
+from term1nal.utils import LOG, make_sure_dir, stage2_copy, stage1_copy, rm_dir, run_async_func
 
 try:
     from json.decoder import JSONDecodeError
@@ -56,7 +56,7 @@ class SSHClient(paramiko.SSHClient):
             raise saved_exception
 
 
-class MixinHandler:
+class CommonMixin:
     def initialize(self, loop):
         self.context = self.request.connection.context
         self.loop = loop
@@ -89,7 +89,7 @@ class MixinHandler:
         return ip, port
 
 
-class IndexHandler(MixinHandler, tornado.web.RequestHandler):
+class IndexHandler(CommonMixin, tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=cpu_count() * 5)
 
     def initialize(self, loop):
@@ -214,7 +214,7 @@ class IndexHandler(MixinHandler, tornado.web.RequestHandler):
         self.write(self.result)
 
 
-class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
+class WSHandler(CommonMixin, tornado.websocket.WebSocketHandler):
 
     def initialize(self, loop):
         super(WSHandler, self).initialize(loop=loop)
@@ -279,11 +279,14 @@ class WSHandler(MixinHandler, tornado.websocket.WebSocketHandler):
             minion.close(reason=self.close_reason)
 
 
-class UploadHandler(MixinHandler, tornado.web.RequestHandler):
+class UploadHandler(CommonMixin, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(UploadHandler, self).initialize(loop=loop)
 
-    def post(self):
+    async def post(self):
+        print(self.request.headers)
+        print(self.request.headers.get('Content-Type'))
+
         minion_id = self.get_value("minion")
         client_ip = self.get_client_endpoint()[0]
         gru = GRU.get(client_ip, {})
@@ -293,19 +296,32 @@ class UploadHandler(MixinHandler, tornado.web.RequestHandler):
         original_filename = file["filename"]
         file_path = f"/tmp/{minion_id}/{original_filename}"
 
+        # with paramiko.SSHClient() as ssh:
+        #     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        #     ssh.connect(*args)
+        #
+        #     transport = ssh.get_transport()
+        #     with transport.open_channel(kind='session') as channel:
+        #         # with open(file)
+        #         # channel.exec_command(f'cat > /tmp/{original_filename}')
+        #         channel.exec_command(f'cat > /tmp/wtf')
+        #         channel.sendall(file['body'])
+
         make_sure_dir(f"/tmp/{minion_id}")
         with open(file_path, "wb") as f:
             f.write(file["body"])
-
+        print("bar")
         stage2_copy(file_path, *args)
 
+        # await run_async_func(stage2_copy, file_path, *args)
+
         # self.finish(f"中转完成，目标位置: /tmp/{original_filename}")
-        self.finish(f"/tmp/{original_filename}")
+        await self.finish(f"/tmp/{original_filename}")
         print("upload ended")
-        rm_dir(f"/tmp/{minion_id}")
+        # rm_dir(f"/tmp/{minion_id}")
 
 
-class DownloadHandler(MixinHandler, tornado.web.RequestHandler):
+class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(DownloadHandler, self).initialize(loop=loop)
 

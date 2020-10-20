@@ -95,7 +95,7 @@ class StreamUploadMixin:
     boundary = None
     fh = None
     minion_id = None
-    context = {}
+    ctx = {}
     args = None
 
     def get_boundary(self):
@@ -109,87 +109,77 @@ class StreamUploadMixin:
     def get_info_from_header(self):
         pass
 
-    def write_part(self):
-        pass
+    def _write_chunk(self, chunk):
+        tmp = self._filter_trailing_carriage_return(chunk)
+        self.fh.write(tmp)
+        # self.fh.write(chunk)
 
     def _filter_trailing_carriage_return(self, chunk):
-        trailing = re.match('.*\r\n$', chunk.decode('ISO-8859-1'), re.MULTILINE|re.DOTALL)
-        if trailing:
+        # trailing = re.match('.*\r\n$', chunk.decode('ISO-8859-1'), re.MULTILINE | re.DOTALL)
+        if chunk.endswith("\r\n".encode()):
+        # if trailing:
             data, _, _ = chunk.rpartition('\r\n'.encode())
-            # print(chunk)
             return data
         return chunk
 
     def data_received(self, data):
-        # print("--------------------data received--------------------------")
-
+        print('------------ data received ----------------------')
+        print(len(data))
         if not self.boundary:
             self.boundary = self.get_boundary()
 
+
         sep = f'--{self.boundary}'
         chunks = data.split(sep.encode())
-        # print(chunks)
-        # print(len(chunks))
 
-        # return
         for chunk in chunks:
             chunk_length = len(chunk)
-            # print("========================================================================")
-            # print(chunk)
 
             if chunk_length == 0:
-                # Beginning, just ignore
-                pass
+                pass  # Beginning, just ignore
             elif chunk_length == 4:
                 # End, close file handler(or similar object)
+                self.fh.flush()
                 self.fh.close()
             else:
-                need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'), re.DOTALL | re.MULTILINE)
+                need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'),
+                                          re.DOTALL | re.MULTILINE)
                 if need2partition:
-                    # print(chunk)
                     header, _, part = chunk.partition('\r\n\r\n'.encode('ISO-8859-1'))
+                    print('[[[[[[[[[[[[[[[')
+                    print(header)
+                    print(part)
+                    print(']]]]]]]]]]]]]]]')
 
                     if part:
-                        # print(header)
                         header_text = header.decode('ISO-8859-1').strip()
                         if 'minion' in header_text:
                             self.minion_id = part.decode('ISO-8859-1').strip()
-                            client_ip = self.get_client_endpoint()[0]
-                            gru = GRU.get(client_ip, {})
-                            self.args = gru[self.minion_id]["args"]
 
                         if 'upload' in header_text:
                             m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
                             if m:
-                                print(header_text)
                                 filename = m.group('filename')
                             else:
                                 filename = 'untitled'
-                            # self.fh = open(f'/tmp/{filename}', 'wb')
-                            with paramiko.SSHClient() as ssh:
-                                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                                ssh.connect(*self.args)
-
-                                transport = ssh.get_transport()
-                                self.fh = transport.open_channel(kind='session')
-                                self.fh.exec_command(f'cat > /tmp/{filename}')
-                                self.fh.sendall(self._filter_trailing_carriage_return(part))
-                                # with transport.open_channel(kind='session') as channel:
-                                    # with open(file)
-                                    # channel.exec_command(f'cat > /tmp/{original_filename}')
+                            # self.fh = open(f'/tmp/{filename}', 'wb', newline='')
+                            self.fh = open(f'/tmp/{filename}', 'wb')
+                            # with paramiko.SSHClient() as ssh:
+                            #     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                            #     ssh.connect(*self.args)
+                            #
+                            #     transport = ssh.get_transport()
+                            #     self.fh = transport.open_channel(kind='session')
+                            #     self.fh.exec_command(f'cat > /tmp/{filename}')
+                            #     self.fh.sendall(self._filter_trailing_carriage_return(part))
+                            # with transport.open_channel(kind='session') as channel:
+                            # with open(file)
+                            # channel.exec_command(f'cat > /tmp/{original_filename}')
                             #         channel.exec_command(f'cat > /tmp/wtf')
                             #         channel.sendall(file['body'])
-                            #
-                            # tmp = self._filter_trailing_carriage_return(part)
-                            # print(tmp[-2:])
-                            # self.fh.write(self._filter_trailing_carriage_return(tmp))
+                            self._write_chunk(part)
                 else:
-                    # Only data chunks
-                    # tmp = self._filter_trailing_carriage_return(chunk)
-                    # print(tmp[-2:])
-                    # self.fh.write(self._filter_trailing_carriage_return(tmp))
-                    self.fh.sendall(self._filter_trailing_carriage_return(chunk))
-
+                    self._write_chunk(chunk)
 
 
 class IndexHandler(CommonMixin, tornado.web.RequestHandler):
@@ -386,11 +376,13 @@ class WSHandler(CommonMixin, tornado.websocket.WebSocketHandler):
 class UploadHandler(StreamUploadMixin, CommonMixin, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(UploadHandler, self).initialize(loop=loop)
-        print(self.request.headers.get('Content-Length'))
+        # print(self.request.headers.get('Content-Length'))
         print(self.request.headers)
 
-
     async def post(self):
+        # client_ip = self.get_client_endpoint()[0]
+        # gru = GRU.get(client_ip, {})
+        # self.args = gru[self.minion_id]["args"]
         # minion_id = self.get_value("minion")
         # client_ip = self.get_client_endpoint()[0]
         # gru = GRU.get(client_ip, {})

@@ -96,6 +96,7 @@ class StreamUploadMixin:
     fh = None
     minion_id = None
     context = {}
+    args = None
 
     def get_boundary(self):
         self.content_type = self.request.headers.get('Content-Type', '')
@@ -111,17 +112,30 @@ class StreamUploadMixin:
     def write_part(self):
         pass
 
+    def _filter_trailing_carriage_return(self, chunk):
+        trailing = re.match('.*\r\n$', chunk.decode('ISO-8859-1'), re.MULTILINE|re.DOTALL)
+        if trailing:
+            data, _, _ = chunk.rpartition('\r\n'.encode())
+            # print(chunk)
+            return data
+        return chunk
+
     def data_received(self, data):
+        # print("--------------------data received--------------------------")
+
         if not self.boundary:
             self.boundary = self.get_boundary()
 
         sep = f'--{self.boundary}'
         chunks = data.split(sep.encode())
-        print(chunks)
+        # print(chunks)
+        # print(len(chunks))
 
         # return
         for chunk in chunks:
             chunk_length = len(chunk)
+            # print("========================================================================")
+            # print(chunk)
 
             if chunk_length == 0:
                 # Beginning, just ignore
@@ -130,50 +144,51 @@ class StreamUploadMixin:
                 # End, close file handler(or similar object)
                 self.fh.close()
             else:
-                header, _, part = chunk.partition('\r\n\r\n'.encode())
+                need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'), re.DOTALL | re.MULTILINE)
+                if need2partition:
+                    # print(chunk)
+                    header, _, part = chunk.partition('\r\n\r\n'.encode('ISO-8859-1'))
 
-                if part:
-                    header_text = header.decode('utf-8').strip()
-                    if 'minion' in header_text:
-                        self.minion_id = part.decode('utf-8').strip()
+                    if part:
+                        # print(header)
+                        header_text = header.decode('ISO-8859-1').strip()
+                        if 'minion' in header_text:
+                            self.minion_id = part.decode('ISO-8859-1').strip()
+                            client_ip = self.get_client_endpoint()[0]
+                            gru = GRU.get(client_ip, {})
+                            self.args = gru[self.minion_id]["args"]
 
-                    if 'upload' in header_text:
-                        m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
-                        if m:
-                            filename = m.group('filename')
-                        else:
-                            filename = 'untitled'
-                        self.fh = open(f'/tmp/{filename}', 'wb')
+                        if 'upload' in header_text:
+                            m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
+                            if m:
+                                print(header_text)
+                                filename = m.group('filename')
+                            else:
+                                filename = 'untitled'
+                            # self.fh = open(f'/tmp/{filename}', 'wb')
+                            with paramiko.SSHClient() as ssh:
+                                ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                                ssh.connect(*self.args)
 
-                        dat, _, _ = part.rpartition('\r\n'.encode())
-                        self.fh.write(dat)
+                                transport = ssh.get_transport()
+                                self.fh = transport.open_channel(kind='session')
+                                self.fh.exec_command(f'cat > /tmp/{filename}')
+                                self.fh.sendall(self._filter_trailing_carriage_return(part))
+                                # with transport.open_channel(kind='session') as channel:
+                                    # with open(file)
+                                    # channel.exec_command(f'cat > /tmp/{original_filename}')
+                            #         channel.exec_command(f'cat > /tmp/wtf')
+                            #         channel.sendall(file['body'])
+                            #
+                            # tmp = self._filter_trailing_carriage_return(part)
+                            # print(tmp[-2:])
+                            # self.fh.write(self._filter_trailing_carriage_return(tmp))
                 else:
-                    # print(chunk.strip('\r\n'.encode()))
-                    # self.fh.write(part)
-                    # print(part)
-                    # print(chunk)
-                    # print(header)
-                    # self.fh.write(header.strip('\r\n'.encode()))
-                    # print(chunk)
-                    # print(chunk.strip('\\r\\n'.encode()))
-                    print(chunk[:-2])
-                    dat, _, _ = chunk.rpartition('\r\n'.encode())
-                    self.fh.write(dat)
-
-
-                    # part is empty, means header is continuation of part
-                # print(header)
-                # print(part)
-                # print(len(part))
-                # try:
-                #     print(len(header))
-                #     print(header.decode('utf-8'))
-                # except UnicodeDecodeError:
-                #     print(len(header))
-                #     print(len(part))
-
-                # print(type(part))
-                # print(part)
+                    # Only data chunks
+                    # tmp = self._filter_trailing_carriage_return(chunk)
+                    # print(tmp[-2:])
+                    # self.fh.write(self._filter_trailing_carriage_return(tmp))
+                    self.fh.sendall(self._filter_trailing_carriage_return(chunk))
 
 
 
@@ -372,17 +387,18 @@ class UploadHandler(StreamUploadMixin, CommonMixin, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(UploadHandler, self).initialize(loop=loop)
         print(self.request.headers.get('Content-Length'))
+        print(self.request.headers)
+
 
     async def post(self):
         # minion_id = self.get_value("minion")
-        client_ip = self.get_client_endpoint()[0]
-        print(client_ip)
-        gru = GRU.get(client_ip, {})
-        args = gru[self.minion_id]["args"]
+        # client_ip = self.get_client_endpoint()[0]
+        # gru = GRU.get(client_ip, {})
+        # args = gru[self.minion_id]["args"]
 
-        file = self.request.files["upload"][0]
-        original_filename = file["filename"]
-        file_path = f"/tmp/{self.minion_id}/{original_filename}"
+        # file = self.request.files["upload"][0]
+        # original_filename = file["filename"]
+        # file_path = f"/tmp/{self.minion_id}/{original_filename}"
 
         # with paramiko.SSHClient() as ssh:
         #     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())

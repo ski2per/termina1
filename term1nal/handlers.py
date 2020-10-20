@@ -90,12 +90,14 @@ class CommonMixin:
         return ip, port
 
 
-class StreamUploadMixin:
+class StreamUploadMixin(CommonMixin):
     content_type = None
     boundary = None
-    fh = None
+    channel = None
+    ssh = None
     minion_id = None
     ctx = {}
+    filename = ''
     args = None
 
     def get_boundary(self):
@@ -106,28 +108,42 @@ class StreamUploadMixin:
         else:
             return None
 
-    def get_info_from_header(self):
+    def setup_ssh_transport(self):
+        client_ip = self.get_client_endpoint()[0]
+        gru = GRU.get(client_ip, {})
+        self.args = gru[self.minion_id]["args"]
+        print(self.args)
+
+        self.ssh = paramiko.SSHClient()
+
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.ssh.connect(*self.args)
+
+        transport = self.ssh.get_transport()
+        self.channel = transport.open_channel(kind='session')
+        # self.channel.exec_command(f'cat > /tmp/{self.filename}')
+        self.channel.exec_command('cat > /tmp/wtf')
+
+    def teardown(self):
         pass
 
     def _write_chunk(self, chunk):
-        tmp = self._filter_trailing_carriage_return(chunk)
-        self.fh.write(tmp)
-        # self.fh.write(chunk)
+        trimmed_chunk = self._filter_trailing_carriage_return(chunk)
+        self.channel.send(trimmed_chunk)
 
-    def _filter_trailing_carriage_return(self, chunk):
+    @staticmethod
+    def _filter_trailing_carriage_return(chunk):
         # trailing = re.match('.*\r\n$', chunk.decode('ISO-8859-1'), re.MULTILINE | re.DOTALL)
-        if chunk.endswith("\r\n".encode()):
         # if trailing:
+        if chunk.endswith("\r\n".encode()):
+            # Not using rstrip(), to make sure b'hello\n\r\n' won't become b'hello'
             data, _, _ = chunk.rpartition('\r\n'.encode())
             return data
         return chunk
 
     def data_received(self, data):
-        print('------------ data received ----------------------')
-        print(len(data))
         if not self.boundary:
             self.boundary = self.get_boundary()
-
 
         sep = f'--{self.boundary}'
         chunks = data.split(sep.encode())
@@ -139,18 +155,14 @@ class StreamUploadMixin:
                 pass  # Beginning, just ignore
             elif chunk_length == 4:
                 # End, close file handler(or similar object)
-                self.fh.flush()
-                self.fh.close()
+                # self.fh.flush()
+                # self.fh.close()
+                pass
             else:
                 need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'),
                                           re.DOTALL | re.MULTILINE)
                 if need2partition:
                     header, _, part = chunk.partition('\r\n\r\n'.encode('ISO-8859-1'))
-                    print('[[[[[[[[[[[[[[[')
-                    print(header)
-                    print(part)
-                    print(']]]]]]]]]]]]]]]')
-
                     if part:
                         header_text = header.decode('ISO-8859-1').strip()
                         if 'minion' in header_text:
@@ -159,18 +171,12 @@ class StreamUploadMixin:
                         if 'upload' in header_text:
                             m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
                             if m:
-                                filename = m.group('filename')
+                                self.filename = m.group('filename')
                             else:
-                                filename = 'untitled'
+                                self.filename = 'untitled'
+                            self.setup_ssh_transport()
                             # self.fh = open(f'/tmp/{filename}', 'wb', newline='')
-                            self.fh = open(f'/tmp/{filename}', 'wb')
-                            # with paramiko.SSHClient() as ssh:
-                            #     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-                            #     ssh.connect(*self.args)
-                            #
-                            #     transport = ssh.get_transport()
-                            #     self.fh = transport.open_channel(kind='session')
-                            #     self.fh.exec_command(f'cat > /tmp/{filename}')
+                            # self.fh = open(f'/tmp/{self.filename}', 'wb')
                             #     self.fh.sendall(self._filter_trailing_carriage_return(part))
                             # with transport.open_channel(kind='session') as channel:
                             # with open(file)

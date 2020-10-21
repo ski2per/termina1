@@ -49,7 +49,7 @@ def main():
     ssl_ctx = get_ssl_context(conf)
     server_settings = dict(
         xheaders=True,
-        max_body_size=1000 * 1024 * 1024,  # 1G
+        max_body_size=6000 * 1024 * 1024,  # 6G
     )
     app.listen(conf.port, conf.address, **server_settings)
     if ssl_ctx:

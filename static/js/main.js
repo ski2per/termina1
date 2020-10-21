@@ -789,7 +789,7 @@ jQuery(function($){
           theXHR.upload.addEventListener('progress', function(e){
             if(e.lengthComputable){
               percent = Math.ceil(e.loaded / e.total * 100);
-              console.log(percent);
+              // console.log(percent);
               $(progress).attr("value", percent);
               if(percent == 100) {
                 progress.hide();
@@ -816,33 +816,32 @@ jQuery(function($){
       alert("Input file path")
       return
     }
-    info.text("文件中转中...")
 
-    // Chrome save dialog will open after file downloaded
-    fetch(`download?filepath=${file}&minion=${getSession("minion")}`)
-    .then((resp) =>{
-      if (!resp.ok) {
-        alert(`${file} not exist`)
-      } else {
-        resp.blob().then((blob) => {
-          let url = window.URL.createObjectURL(blob);
-          let a = document.createElement('a');
-          a.style.display = 'none';
-          a.href = url;
-          a.download = file.split('/').pop();
-          document.body.appendChild(a);
-          a.click();
-          window.URL.revokeObjectURL(url)
-        })
-      }
-    })
-    .catch((err) => {
-      alert(err)
-    })
+    // Chrome save dialog will open after file has been downloaded
+    // fetch(`download?filepath=${file}&minion=${getSession("minion")}`)
+    // .then((resp) =>{
+    //   if (!resp.ok) {
+    //     alert(`${file} not exist`)
+    //   } else {
+    //     resp.blob().then((blob) => {
+    //       let url = window.URL.createObjectURL(blob);
+    //       let a = document.createElement('a');
+    //       a.style.display = 'none';
+    //       a.href = url;
+    //       a.download = file.split('/').pop();
+    //       document.body.appendChild(a);
+    //       a.click();
+    //       window.URL.revokeObjectURL(url)
+    //     })
+    //   }
+    // })
+    // .catch((err) => {
+    //   alert(err)
+    // })
 
     // With Chrome download progress
     // window.location.href = `download?filepath=${file}&minion=${getSession("minion")}`;
-    // window.open(`download?filepath=${file}&minion=${getSession("minion")}`);
+    window.open(`download?filepath=${file}&minion=${getSession("minion")}`);
   }); // #download.click()
 
   toggle.click(function(){
@@ -851,6 +850,7 @@ jQuery(function($){
 //      progress.hide()
 //    }
 //    progress.toggle();
+    $("#downloadFile").val("");
     progress.hide();
     toolbar.toggle();
     info.text("")

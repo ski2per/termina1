@@ -93,7 +93,7 @@ class CommonMixin:
 class StreamUploadMixin(CommonMixin):
     content_type = None
     boundary = None
-    channel = None
+    fh = None
     ssh = None
     minion_id = None
     ctx = {}
@@ -120,16 +120,15 @@ class StreamUploadMixin(CommonMixin):
         self.ssh.connect(*self.args)
 
         transport = self.ssh.get_transport()
-        self.channel = transport.open_channel(kind='session')
-        # self.channel.exec_command(f'cat > /tmp/{self.filename}')
-        self.channel.exec_command('cat > /tmp/wtf')
+        self.fh = transport.open_channel(kind='session')
+        self.fh.exec_command(f'cat > /tmp/{self.filename}')
 
     def teardown(self):
         pass
 
     def _write_chunk(self, chunk):
         trimmed_chunk = self._filter_trailing_carriage_return(chunk)
-        self.channel.send(trimmed_chunk)
+        self.fh.sendall(trimmed_chunk)
 
     @staticmethod
     def _filter_trailing_carriage_return(chunk):
@@ -155,9 +154,7 @@ class StreamUploadMixin(CommonMixin):
                 pass  # Beginning, just ignore
             elif chunk_length == 4:
                 # End, close file handler(or similar object)
-                # self.fh.flush()
-                # self.fh.close()
-                pass
+                self.ssh.close()
             else:
                 need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'),
                                           re.DOTALL | re.MULTILINE)
@@ -177,12 +174,7 @@ class StreamUploadMixin(CommonMixin):
                             self.setup_ssh_transport()
                             # self.fh = open(f'/tmp/{filename}', 'wb', newline='')
                             # self.fh = open(f'/tmp/{self.filename}', 'wb')
-                            #     self.fh.sendall(self._filter_trailing_carriage_return(part))
-                            # with transport.open_channel(kind='session') as channel:
-                            # with open(file)
-                            # channel.exec_command(f'cat > /tmp/{original_filename}')
-                            #         channel.exec_command(f'cat > /tmp/wtf')
-                            #         channel.sendall(file['body'])
+                            # self.fh.sendall(self._filter_trailing_carriage_return(part))
                             self._write_chunk(part)
                 else:
                     self._write_chunk(chunk)
@@ -382,45 +374,10 @@ class WSHandler(CommonMixin, tornado.websocket.WebSocketHandler):
 class UploadHandler(StreamUploadMixin, CommonMixin, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(UploadHandler, self).initialize(loop=loop)
-        # print(self.request.headers.get('Content-Length'))
-        print(self.request.headers)
 
     async def post(self):
-        # client_ip = self.get_client_endpoint()[0]
-        # gru = GRU.get(client_ip, {})
-        # self.args = gru[self.minion_id]["args"]
-        # minion_id = self.get_value("minion")
-        # client_ip = self.get_client_endpoint()[0]
-        # gru = GRU.get(client_ip, {})
-        # args = gru[self.minion_id]["args"]
-
-        # file = self.request.files["upload"][0]
-        # original_filename = file["filename"]
-        # file_path = f"/tmp/{self.minion_id}/{original_filename}"
-
-        # with paramiko.SSHClient() as ssh:
-        #     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        #     ssh.connect(*args)
-        #
-        #     transport = ssh.get_transport()
-        #     with transport.open_channel(kind='session') as channel:
-        #         # with open(file)
-        #         # channel.exec_command(f'cat > /tmp/{original_filename}')
-        #         channel.exec_command(f'cat > /tmp/wtf')
-        #         channel.sendall(file['body'])
-
-        # make_sure_dir(f"/tmp/{self.minion_id}")
-        # with open(file_path, "wb") as f:
-        #     f.write(file["body"])
-        # print("bar")
-        # stage2_copy(file_path, *args)
-
-        # await run_async_func(stage2_copy, file_path, *args)
-
-        # self.finish(f"中转完成，目标位置: /tmp/{original_filename}")
-        # await self.finish(f"/tmp/{original_filename}")
         print("upload ended")
-        # rm_dir(f"/tmp/{minion_id}")
+        await self.finish(f'/tmp/{self.filename}')
 
 
 class DownloadHandler(CommonMixin, tornado.web.RequestHandler):

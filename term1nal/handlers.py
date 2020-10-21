@@ -58,9 +58,30 @@ class SSHClient(paramiko.SSHClient):
 
 
 class CommonMixin:
+    fh = None
+    args = None
+    ssh = None
+    minion_id = None
+    filename = ''
+
     def initialize(self, loop):
         self.context = self.request.connection.context
         self.loop = loop
+
+    def setup_ssh_transport(self, cmd):
+        client_ip = self.get_client_endpoint()[0]
+        gru = GRU.get(client_ip, {})
+        self.args = gru[self.minion_id]["args"]
+        print(self.args)
+
+        self.ssh = paramiko.SSHClient()
+
+        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.ssh.connect(*self.args)
+
+        transport = self.ssh.get_transport()
+        self.fh = transport.open_channel(kind='session')
+        self.fh.exec_command(cmd)
 
     def get_value(self, name):
         value = self.get_argument(name)
@@ -93,12 +114,6 @@ class CommonMixin:
 class StreamUploadMixin(CommonMixin):
     content_type = None
     boundary = None
-    fh = None
-    ssh = None
-    minion_id = None
-    ctx = {}
-    filename = ''
-    args = None
 
     def get_boundary(self):
         self.content_type = self.request.headers.get('Content-Type', '')
@@ -107,21 +122,6 @@ class StreamUploadMixin(CommonMixin):
             return match.group('boundary')
         else:
             return None
-
-    def setup_ssh_transport(self):
-        client_ip = self.get_client_endpoint()[0]
-        gru = GRU.get(client_ip, {})
-        self.args = gru[self.minion_id]["args"]
-        print(self.args)
-
-        self.ssh = paramiko.SSHClient()
-
-        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.ssh.connect(*self.args)
-
-        transport = self.ssh.get_transport()
-        self.fh = transport.open_channel(kind='session')
-        self.fh.exec_command(f'cat > /tmp/{self.filename}')
 
     def teardown(self):
         pass
@@ -171,7 +171,7 @@ class StreamUploadMixin(CommonMixin):
                                 self.filename = m.group('filename')
                             else:
                                 self.filename = 'untitled'
-                            self.setup_ssh_transport()
+                            self.setup_ssh_transport(f'cat > /tmp/{self.filename}')
                             # self.fh = open(f'/tmp/{filename}', 'wb', newline='')
                             # self.fh = open(f'/tmp/{self.filename}', 'wb')
                             # self.fh.sendall(self._filter_trailing_carriage_return(part))
@@ -388,46 +388,36 @@ class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
         chunk_size = 1024 * 1024 * 1  # 1 MiB
 
         remote_file_path = self.get_query_value("filepath")
+        filename = os.path.basename(remote_file_path)
         print(remote_file_path)
-        minion_id = self.get_value("minion")
-        print(f"minion ID: {minion_id}")
+        self.minion_id = self.get_value("minion")
+        print(f"minion ID: {self.minion_id}")
         client_ip = self.get_client_endpoint()[0]
         gru = GRU.get(client_ip, {})
-        args = gru[minion_id]["args"]
+        self.args = gru[self.minion_id]["args"]
 
-        try:
-            stage1_copy(minion_id, remote_file_path, *args)
-        except FileNotFoundError as err:
-            LOG.error(err)
-            raise tornado.web.HTTPError(404)
-
-        filename = os.path.basename(remote_file_path)
-        local_file = os.path.join("/tmp", minion_id, filename)
-
-        file_size = os.path.getsize(local_file)
+        self.setup_ssh_transport(f'cat {remote_file_path}')
 
         self.set_header("Content-Type", "application/octet-stream")
-        self.set_header("Content-Length", file_size)
         self.set_header("Accept-Ranges", "bytes")
         self.set_header("Content-Disposition", f"attachment; filename={filename}")
-        # with open(local_file, "rb") as f:
-        #     self.write(f.read())
-        with open(local_file, 'rb') as f:
-            while True:
-                chunk = f.read(chunk_size)
-                if not chunk:
-                    break
-                try:
-                    # write the chunk to response
-                    self.write(chunk)
-                    # send the chunk to client
-                    await self.flush()
-                except iostream.StreamClosedError:
-                    break
-                finally:
-                    del chunk
-                    await tornado.web.gen.sleep(0.000000001)  # 1 nanosecond
 
+        # with open(local_file, 'rb') as f:
+        while True:
+            chunk = self.fh.recv(chunk_size)
+            if not chunk:
+                break
+            try:
+                # write the chunk to response
+                self.write(chunk)
+                # send the chunk to client
+                await self.flush()
+            except iostream.StreamClosedError:
+                break
+            finally:
+                del chunk
+                await tornado.web.gen.sleep(0.000000001)  # 1 nanosecond
+
+        self.ssh.close()
         await self.finish()
         print("download ended")
-        rm_dir(f"/tmp/{minion_id}")

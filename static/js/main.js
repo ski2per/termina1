@@ -760,6 +760,8 @@ jQuery(function($){
   $("#upload").click(function(){
     // Clean this for triggering change event for same file
     this.value = "";
+    // Clean info text
+    info.text("");
   });
 
   // Listen to "file" change event to upload file,

@@ -29,10 +29,9 @@ var wterm = {};
 
 jQuery(function($){
   var status = $('#status'),
-      formID = '#ssh-cred',
+      formID = '#authForm',
       submitBtn = $('#submit'),
       info = $('#info'),
-      // formContainer = $('.form-container'),
       toolbar = $('#toolbar'),
       toggle = $('#toggle'),
       progress = $("#progress"),

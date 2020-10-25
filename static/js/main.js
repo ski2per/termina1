@@ -1,5 +1,3 @@
-/*jslint browser:true */
-
 var jQuery;
 var wterm = {};
 
@@ -34,7 +32,7 @@ jQuery(function($){
       formID = '#ssh-cred',
       submitBtn = $('#submit'),
       info = $('#info'),
-      formContainer = $('.form-container'),
+      // formContainer = $('.form-container'),
       toolbar = $('#toolbar'),
       toggle = $('#toggle'),
       progress = $("#progress"),
@@ -64,13 +62,12 @@ jQuery(function($){
   toolbar.hide()
   toggle.hide()
 
+  // 
   function copySelectedText() {
     let el = document.createElement('textarea');
     el.value = term.getSelection();
-    // document.body.appendChild(el);
     el.select();
     document.execCommand('copy');
-    // document.body.removeChild(el)
   }
 
   function storeItems(names, data) {
@@ -330,9 +327,9 @@ jQuery(function($){
       validatedFormData = undefined;
     }
 
-    if (formContainer.css('display') === 'none') {
-      formContainer.show();
-    }
+    // if (formContainer.css('display') === 'none') {
+    //   formContainer.show();
+    // }
   }
 
   function ajaxCompleteCallback(resp) {
@@ -890,7 +887,7 @@ jQuery(function($){
       connect(urlFormData);
     } else {
       restoreItems(fields);
-      formContainer.show();
+      // formContainer.show();
     }
   }
 

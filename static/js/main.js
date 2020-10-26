@@ -69,28 +69,26 @@ jQuery(function($){
     document.execCommand('copy');
   }
 
+  // Store hostname, port, username in local storage
   function storeItems(names, data) {
-    var i, name, value;
-
-    for (i = 0; i < names.length; i++) {
-      name = names[i];
+    console.log("store items", data);
+    names.forEach((name) => {
       value = data.get(name);
       if (value){
         window.localStorage.setItem(name, value);
       }
-    }
+    });
   }
 
+  // Restore hostname, port, username from local storage
   function restoreItems(names) {
-    var i, name, value;
-
-    for (i=0; i < names.length; i++) {
-      name = names[i];
+    console.log("restore item");
+    names.forEach((name) => {
       value = window.localStorage.getItem(name);
       if (value) {
-        $('#'+name).val(value);
+        $(`#${name}`).val(value);
       }
-    }
+    })
   }
 
   function setSession(name, data) {
@@ -572,18 +570,14 @@ jQuery(function($){
     return obj;
   }
 
-  //Trim values in data
-  function trimData(data) {
+
+  function validateFormData(data) {
     fields.forEach(function(attr){
       var val = data.get(attr)
       if (typeof val === 'string') {
         data.set(attr, val.trim());
       }
     })
-  }
-
-  function validateFormData(data) {
-    trimData(data);
 
     var hostname = data.get('hostname'),
         port = data.get('port'),

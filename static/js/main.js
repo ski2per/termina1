@@ -102,18 +102,6 @@ jQuery(function($){
     return window.sessionStorage.getItem(name)
   }
 
-  function populateForm(data) {
-    var names = formKeys.concat(['passphrase']),
-        i, name;
-
-    console.log("in populateForm")
-    console.log(names)
-    for (i=0; i < names.length; i++) {
-      name = names[i];
-      $('#'+name).val(data.get(name));
-    }
-  }
-
   function getObjectLength(object) {
     return Object.keys(object).length;
   }
@@ -168,12 +156,6 @@ jQuery(function($){
   function getCellSize(term) {
     style.width = term._core._renderService._renderer.dimensions.actualCellWidth;
     style.height = term._core._renderService._renderer.dimensions.actualCellHeight;
-  }
-
-  function toggleFullscreen(term) {
-    $('#terminal .terminal').toggleClass('fullscreen');
-    // $('#toolbar .toolbar').toggleClass('fullscreen');
-    term.fitAddon.fit();
   }
 
   function currentGeometry(term) {
@@ -316,32 +298,26 @@ jQuery(function($){
     }
   }
 
-  function logStatus(text, to_populate) {
-    status.html(text.split('\n').join('<br/>'));
-
-    if (to_populate && validatedFormData) {
-      populateForm(validatedFormData);
-      validatedFormData = undefined;
-    }
-
-    // if (formContainer.css('display') === 'none') {
-    //   formContainer.show();
-    // }
+  function setStatus(text) {
+    // status.html(text.split('\n').join('<br/>'));
+    // $('#status').html(text.split('\n').join('<br/>'));
+    // $('#status').html(`<br/>${text}`);
+    $('#status').html(text);
   }
 
   function ajaxCompleteCallback(resp) {
-    console.log("ajax");
+    console.log("ajaxCompleteCallback");
     submitBtn.attr('disabled', false);
 
     if (resp.status !== 200) {
-      logStatus(resp.status + ': ' + resp.statusText, true);
+      setStatus(resp.status + ': ' + resp.statusText);
       state = DISCONNECTED;
       return;
     }
 
     var msg = resp.responseJSON;
     if (!msg.id) {
-      logStatus(msg.status, true);
+      setStatus(msg.status);
       state = DISCONNECTED;
       return;
     } else {
@@ -511,7 +487,12 @@ jQuery(function($){
       // progress.hide();
 
       term.open(terminal);
-      toggleFullscreen(term);
+      // toggleFullscreen(term);
+
+      //Full screen
+      $('#terminal .terminal').toggleClass('fullscreen');
+      term.fitAddon.fit();
+
       updateFontFamily(term);
       term.focus();
       state = CONNECTED;
@@ -540,7 +521,7 @@ jQuery(function($){
       term = undefined;
       sock = undefined;
       resetWssh();
-      logStatus(e.reason, true);
+      setStatus(e.reason);
       state = DISCONNECTED;
       defaultTitle = 'Term1nal';
       titleElement.text = defaultTitle;
@@ -622,7 +603,7 @@ jQuery(function($){
     data = new FormData(form);
 
     function ajax_post() {
-      status.text('');
+      setStatus('');
       submitBtn.attr('disabled', true)
 
       $.ajax({
@@ -638,7 +619,7 @@ jQuery(function($){
 
     var result = validateFormData(data);
     if (!result.valid) {
-      logStatus(result.errors.join('\n'));
+      setStatus(result.errors);
       return;
     }
     ajax_post();
@@ -654,7 +635,7 @@ jQuery(function($){
 
     var result = validateFormData(wrapObject(data));
     if (!result.valid) {
-      logStatus(result.errors.join('\n'));
+      setStatus(result.errors.join('\n'));
       return;
     }
 
@@ -664,7 +645,7 @@ jQuery(function($){
       data._origin = eventOrigin;
     }
 
-    status.text('');
+    setStatus('');
     submitBtn.attr('disabled', true)
 
     $.ajax({
@@ -874,7 +855,7 @@ jQuery(function($){
   }
 
   if (urlFormData.password === null) {
-    logStatus('Password via url must be encoded in base64.');
+    setStatus('Password via url must be encoded in base64.');
   } else {
     if (getObjectLength(urlFormData)) {
       connect(urlFormData);

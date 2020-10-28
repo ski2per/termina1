@@ -28,8 +28,7 @@ var wterm = {};
 
 
 jQuery(function($){
-  var status = $('#status'),
-      formID = '#authForm',
+  var formID = '#sshForm',
       submitBtn = $('#submit'),
       info = $('#info'),
       toolbar = $('#toolbar'),
@@ -41,7 +40,7 @@ jQuery(function($){
       defaultTitle = '',
       titleElement = document.querySelector('title'),
       debug = document.querySelector(formID).noValidate,
-      customFont = document.fonts ? document.fonts.values().next().value : undefined,
+      customizedFont = document.fonts ? document.fonts.values().next().value : undefined,
       defaultFonts,
       DISCONNECTED = 0,
       CONNECTING = 1,
@@ -58,10 +57,9 @@ jQuery(function($){
       eventOrigin
 
   // Hide toolbar first
-  toolbar.hide()
-  toggle.hide()
+  toolbar.hide();
+  toggle.hide();
 
-  // 
   function copySelectedText() {
     let el = document.createElement('textarea');
     el.value = term.getSelection();
@@ -107,6 +105,8 @@ jQuery(function($){
   }
 
   function decodeUri(uri) {
+    console.log('[decodeUri]');
+    console.log(uri);
     try {
       return decodeURI(uri);
     } catch(e) {
@@ -125,8 +125,14 @@ jQuery(function($){
   }
 
   function parseUrlData(string, form_keys, opts_keys, form_map, opts_map) {
+    // console.log('[parseUrlData]');
+    // console.log(`string: ${string}`);
+    // console.log(`form_keys: ${form_keys}`);
+    // console.log(`opts_keys: ${opts_keys}`);
+
     var i, pair, key, val,
         arr = string.split('&');
+    // console.log(`arr; ${arr}`);
 
     for (i = 0; i < arr.length; i++) {
       pair = arr[i].split('=');
@@ -140,7 +146,12 @@ jQuery(function($){
       }
     }
 
+    // console.log(`opts_map: ${opts_map}`);
+    // console.log(opts_map);
+    // console.log(`form_map: ${form_map}`);
+
     if (form_map.password) {
+      console.log("WTF");
       form_map.password = decodePassword(form_map.password);
     }
   }
@@ -184,14 +195,14 @@ jQuery(function($){
   }
 
   function isCustomFontLoaded() {
-    if (!customFont) {
+    if (!customizedFont) {
       console.log('No custom font specified.');
     } else {
-      console.log('Status of custom font ' + customFont.family + ': ' + customFont.status);
-      if (customFont.status === 'loaded') {
+      console.log('Status of custom font ' + customizedFont.family + ': ' + customizedFont.status);
+      if (customizedFont.status === 'loaded') {
         return true;
       }
-      if (customFont.status === 'unloaded') {
+      if (customizedFont.status === 'unloaded') {
         return false;
       }
     }
@@ -208,7 +219,7 @@ jQuery(function($){
     }
 
     if (isCustomFontLoaded()) {
-       var new_fonts =  customFont.family + ', ' + defaultFonts;
+       var new_fonts =  customizedFont.family + ', ' + defaultFonts;
       var new_fonts =  "Hack" + ', ' + defaultFonts;
       term.setOption('fontFamily', new_fonts);
       term.font_family_updated = true;
@@ -298,11 +309,11 @@ jQuery(function($){
     }
   }
 
-  function setStatus(text) {
+  function setMsg(text) {
     // status.html(text.split('\n').join('<br/>'));
     // $('#status').html(text.split('\n').join('<br/>'));
     // $('#status').html(`<br/>${text}`);
-    $('#status').html(text);
+    $('#msg').html(text);
   }
 
   function ajaxCompleteCallback(resp) {
@@ -310,14 +321,14 @@ jQuery(function($){
     submitBtn.attr('disabled', false);
 
     if (resp.status !== 200) {
-      setStatus(resp.status + ': ' + resp.statusText);
+      setMsg(resp.status + ': ' + resp.statusText);
       state = DISCONNECTED;
       return;
     }
 
     var msg = resp.responseJSON;
     if (!msg.id) {
-      setStatus(msg.status);
+      setMsg(msg.status);
       state = DISCONNECTED;
       return;
     } else {
@@ -521,7 +532,7 @@ jQuery(function($){
       term = undefined;
       sock = undefined;
       resetWssh();
-      setStatus(e.reason);
+      setMsg(e.reason);
       state = DISCONNECTED;
       defaultTitle = 'Term1nal';
       titleElement.text = defaultTitle;
@@ -592,6 +603,7 @@ jQuery(function($){
     }
     result.errors = errors;
 
+    console.log(`[validateFormData]: ${result}`)
     return result;
   }
 
@@ -603,7 +615,7 @@ jQuery(function($){
     data = new FormData(form);
 
     function ajax_post() {
-      setStatus('');
+      setMsg('');
       submitBtn.attr('disabled', true)
 
       $.ajax({
@@ -619,7 +631,7 @@ jQuery(function($){
 
     var result = validateFormData(data);
     if (!result.valid) {
-      setStatus(result.errors);
+      setMsg(result.errors);
       return;
     }
     ajax_post();
@@ -635,7 +647,7 @@ jQuery(function($){
 
     var result = validateFormData(wrapObject(data));
     if (!result.valid) {
-      setStatus(result.errors.join('\n'));
+      setMsg(result.errors.join('\n'));
       return;
     }
 
@@ -645,7 +657,7 @@ jQuery(function($){
       data._origin = eventOrigin;
     }
 
-    setStatus('');
+    setMsg('');
     submitBtn.attr('disabled', true)
 
     $.ajax({
@@ -839,30 +851,36 @@ jQuery(function($){
     document.fonts.ready.then(
       function() {
         if (isCustomFontLoaded() === false) {
-          document.body.style.fontFamily = customFont.family;
+          document.body.style.fontFamily = customizedFont.family;
         }
       }
     );
   }
 
-  parseUrlData(
-    decodeUri(window.location.search.substring(1)) + '&' + decodeUri(window.location.hash.substring(1)),
-    formKeys, optsKeys, urlFormData, urlOptsData
-  );
+  // parseUrlData(
+  //   decodeUri(window.location.search.substring(1)) + '&' + decodeUri(window.location.hash.substring(1)),
+  //   formKeys, optsKeys, urlFormData, urlOptsData
+  // );
 
-  if (urlOptsData.term) {
-    terminal.val(urlOptsData.term);
-  }
+  // console.log(urlFormData);
+  // console.log(urlOptsData);
 
-  if (urlFormData.password === null) {
-    setStatus('Password via url must be encoded in base64.');
-  } else {
-    if (getObjectLength(urlFormData)) {
-      connect(urlFormData);
-    } else {
-      restoreItems(fields);
-      // formContainer.show();
-    }
-  }
+  // if (urlOptsData.term) {
+  //   terminal.val(urlOptsData.term);
+  // }
+
+
+  // if (urlFormData.password === null) {
+  //   setMsg('Password via url must be encoded in base64.');
+  // } else {
+  //   if (getObjectLength(urlFormData)) {
+  //     connect(urlFormData);
+  //   } else {
+  //     restoreItems(fields);
+  //     // formContainer.show();
+  //   }
+  // }
+
+  restoreItems(fields);
 
 });

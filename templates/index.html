@@ -14,7 +14,7 @@
       <div class="col">
         <div class="nes-container with-title">
           <p class="title">Web Terminal - VERSION</p>
-          <form id="authForm" action="" method="post" enctype="multipart/form-data"{% if debug %} novalidate{% end %}>
+          <form id="sshForm" action="" method="post" enctype="multipart/form-data"{% if debug %} novalidate{% end %}>
             <div class="row">
               <div class="col">
                 <label for="Hostname">Hostname</label>
@@ -22,7 +22,7 @@
               </div>
               <div class="col">
                 <label for="Port">Port</label>
-                <input class="nes-input" type="number" id="port" name="port" placeholder="22" value="22" min=1 max=65535>
+                <input class="nes-input" type="number" id="port" name="port" placeholder="22" value="22" min="1" max="65535">
               </div>
             </div>
             <div class="row">
@@ -71,7 +71,7 @@
           <button id="toggle" type="button" class="nes-btn is-error" style=" padding-top: 0px;">☰</button>
         </div>
         <div id="terminal"></div>
-        <div id="status" style="color: red;"></div>
+        <div id="msg" style="color: red;"></div>
       </div> <!-- Right Column -->
     </div>
     <div class="font_preload" style="opacity: 0">

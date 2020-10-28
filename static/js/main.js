@@ -48,7 +48,7 @@ jQuery(function($){
       state = DISCONNECTED,
       messages = {1: 'This client is connecting ...', 2: 'This client is already connnected.'},
       maxKeySize = 16384,
-      fields = ['hostname', 'port', 'username'],
+      fields = ['hostname', 'port', 'username', 'password'],
       formKeys = fields.concat(['password', 'totp']),
       optsKeys = ['bgcolor', 'title', 'encoding', 'command', 'term'],
       urlFormData = {},
@@ -69,9 +69,10 @@ jQuery(function($){
 
   // Store hostname, port, username in local storage
   function storeItems(names, data) {
+    console.log(names);
     console.log("store items", data);
     names.forEach((name) => {
-      value = data.get(name);
+      value = data[name];
       if (value){
         window.localStorage.setItem(name, value);
       }
@@ -100,61 +101,6 @@ jQuery(function($){
     return window.sessionStorage.getItem(name)
   }
 
-  function getObjectLength(object) {
-    return Object.keys(object).length;
-  }
-
-  function decodeUri(uri) {
-    console.log('[decodeUri]');
-    console.log(uri);
-    try {
-      return decodeURI(uri);
-    } catch(e) {
-      console.error(e);
-    }
-    return '';
-  }
-
-  function decodePassword(encoded) {
-    try {
-      return window.atob(encoded);
-    } catch (e) {
-       console.error(e);
-    }
-    return null;
-  }
-
-  function parseUrlData(string, form_keys, opts_keys, form_map, opts_map) {
-    // console.log('[parseUrlData]');
-    // console.log(`string: ${string}`);
-    // console.log(`form_keys: ${form_keys}`);
-    // console.log(`opts_keys: ${opts_keys}`);
-
-    var i, pair, key, val,
-        arr = string.split('&');
-    // console.log(`arr; ${arr}`);
-
-    for (i = 0; i < arr.length; i++) {
-      pair = arr[i].split('=');
-      key = pair[0].trim().toLowerCase();
-      val = pair.slice(1).join('=').trim();
-
-      if (form_keys.indexOf(key) >= 0) {
-        form_map[key] = val;
-      } else if (opts_keys.indexOf(key) >=0) {
-        opts_map[key] = val;
-      }
-    }
-
-    // console.log(`opts_map: ${opts_map}`);
-    // console.log(opts_map);
-    // console.log(`form_map: ${form_map}`);
-
-    if (form_map.password) {
-      console.log("WTF");
-      form_map.password = decodePassword(form_map.password);
-    }
-  }
 
   function parseXtermStyle() {
     var text = $('.xterm-helpers style').text();
@@ -563,54 +509,33 @@ jQuery(function($){
   }
 
 
-  function validateFormData(data) {
+  function validateFormData() {
+    setMsg("");
+    let form = document.querySelector(formID)
+    let data = new FormData(form)
+    let result = {error: ""}
+
     fields.forEach(function(attr){
       var val = data.get(attr)
-      if (typeof val === 'string') {
-        data.set(attr, val.trim());
+      console.log(val);
+      if (!val) {
+        result.error = `${attr} is required`;
+        return result;
+      } else {
+        result[attr] = val;
       }
     })
-
-    var hostname = data.get('hostname'),
-        port = data.get('port'),
-        username = data.get('username'),
-        result = {
-          valid: false,
-          data: data,
-          title: ''
-        },
-        errors = [];
-
-    if (!hostname) {
-      errors.push('Value of hostname is required.');
-    }
-
-    if (!port) {
-      port = 22;
-    } else {
-      if (!(port > 0 && port < 65535)) {
-        errors.push('Invalid port: ' + port);
-      }
-    }
-
-    if (!username) {
-      errors.push('Value of username is required.');
-    }
-
-    if (!errors.length || debug) {
-      result.valid = true;
-      result.title = username + '@' + hostname + ':'  + port;
-    }
-    result.errors = errors;
-
-    console.log(`[validateFormData]: ${result}`)
+    
+    storeItems(fields.slice(0, -1), result);
     return result;
   }
 
   function connectWithoutOptions() {
+    console.log('[ConnectWithoutOptions]')
     // use data from the form
     var form = document.querySelector(formID),
-        url = form.action, data;
+        url = form.action,
+        data;
 
     data = new FormData(form);
 
@@ -628,84 +553,32 @@ jQuery(function($){
           processData: false
       });
     }
+    ajax_post();
+  }
 
-    var result = validateFormData(data);
-    if (!result.valid) {
-      setMsg(result.errors);
-      return;
+  function connect() {
+    // Use data from the form
+    let form = document.querySelector(formID),
+        url = form.action,
+        data;
+
+    data = new FormData(form);
+
+    function ajax_post() {
+      setMsg('');
+      submitBtn.attr('disabled', true)
+
+      $.ajax({
+          url: url,
+          type: 'post',
+          data: data,
+          complete: ajaxCompleteCallback,
+          cache: false,
+          contentType: false,
+          processData: false
+      });
     }
     ajax_post();
-
-    return result;
-  }
-
-  function connectWithOptions(data) {
-    // use data from the arguments
-    var form = document.querySelector(formID),
-        url = data.url || form.action,
-        _xsrf = form.querySelector('input[name="_xsrf"]');
-
-    var result = validateFormData(wrapObject(data));
-    if (!result.valid) {
-      setMsg(result.errors.join('\n'));
-      return;
-    }
-
-    data.term = terminal.val();
-    data._xsrf = _xsrf.value;
-    if (eventOrigin) {
-      data._origin = eventOrigin;
-    }
-
-    setMsg('');
-    submitBtn.attr('disabled', true)
-
-    $.ajax({
-        url: url,
-        type: 'post',
-        data: data,
-        complete: ajaxCompleteCallback
-    });
-
-    return result;
-  }
-
-  function connect(hostname, port, username, password, privatekey, passphrase, totp) {
-    var result, opts;
-
-    if (state !== DISCONNECTED) {
-      console.log(messages[state]);
-      return;
-    }
-
-    if (hostname === undefined) {
-      result = connectWithoutOptions();
-    } else {
-      if (typeof hostname === 'string') {
-        opts = {
-          hostname: hostname,
-          port: port,
-          username: username,
-          password: password,
-          privatekey: privatekey,
-          passphrase: passphrase,
-          totp: totp
-        };
-      } else {
-        opts = hostname;
-      }
-
-      result = connectWithOptions(opts);
-    }
-
-    if (result) {
-      state = CONNECTING;
-      defaultTitle = result.title;
-      if (hostname) {
-        validatedFormData = result.data;
-      }
-      storeItems(fields, result.data);
-    }
   }
 
   function crossOriginConnect(event)
@@ -737,7 +610,13 @@ jQuery(function($){
 
   $(formID).submit(function(event){
     event.preventDefault();
-    connect();
+    let result = validateFormData();
+    console.log(result);
+    if (result.error) {
+      setMsg(result.error);
+    } else {
+      connect();
+    }
   });
 
   $("#upload").click(function(){
@@ -856,31 +735,6 @@ jQuery(function($){
       }
     );
   }
-
-  // parseUrlData(
-  //   decodeUri(window.location.search.substring(1)) + '&' + decodeUri(window.location.hash.substring(1)),
-  //   formKeys, optsKeys, urlFormData, urlOptsData
-  // );
-
-  // console.log(urlFormData);
-  // console.log(urlOptsData);
-
-  // if (urlOptsData.term) {
-  //   terminal.val(urlOptsData.term);
-  // }
-
-
-  // if (urlFormData.password === null) {
-  //   setMsg('Password via url must be encoded in base64.');
-  // } else {
-  //   if (getObjectLength(urlFormData)) {
-  //     connect(urlFormData);
-  //   } else {
-  //     restoreItems(fields);
-  //     // formContainer.show();
-  //   }
-  // }
-
-  restoreItems(fields);
-
+  // Restore Hostname, Port and Username(exclude Password) in sshForm
+  restoreItems(fields.slice(0, -1));
 });

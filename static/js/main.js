@@ -270,9 +270,9 @@ jQuery(function($){
     }
 
     var msg = resp.responseJSON;
+    console.log(msg);
     if (!msg.id) {
       setMsg(msg.status);
-      state = DISCONNECTED;
       return;
     } else {
       setSession("minion", msg.id)

@@ -39,7 +39,6 @@ jQuery(function($){
       style = {},
       defaultTitle = '',
       titleElement = document.querySelector('title'),
-      debug = document.querySelector(formID).noValidate,
       customizedFont = document.fonts ? document.fonts.values().next().value : undefined,
       defaultFonts,
       DISCONNECTED = 0,
@@ -69,8 +68,6 @@ jQuery(function($){
 
   // Store hostname, port, username in local storage
   function storeItems(names, data) {
-    console.log(names);
-    console.log("store items", data);
     names.forEach((name) => {
       value = data[name];
       if (value){
@@ -81,7 +78,6 @@ jQuery(function($){
 
   // Restore hostname, port, username from local storage
   function restoreItems(names) {
-    console.log("restore item");
     names.forEach((name) => {
       value = window.localStorage.getItem(name);
       if (value) {
@@ -262,9 +258,10 @@ jQuery(function($){
     $('#msg').html(text);
   }
 
-  function ajaxCompleteCallback(resp) {
-    console.log("ajaxCompleteCallback");
+  function ajaxCallback(resp) {
+    console.log("ajaxCallback");
     submitBtn.attr('disabled', false);
+    console.log(resp.status, resp.statusText);
 
     if (resp.status !== 200) {
       setMsg(resp.status + ': ' + resp.statusText);
@@ -517,7 +514,6 @@ jQuery(function($){
 
     fields.forEach(function(attr){
       var val = data.get(attr)
-      console.log(val);
       if (!val) {
         result.error = `${attr} is required`;
         return result;
@@ -530,38 +526,14 @@ jQuery(function($){
     return result;
   }
 
-  function connectWithoutOptions() {
-    console.log('[ConnectWithoutOptions]')
-    // use data from the form
-    var form = document.querySelector(formID),
-        url = form.action,
-        data;
-
-    data = new FormData(form);
-
-    function ajax_post() {
-      setMsg('');
-      submitBtn.attr('disabled', true)
-
-      $.ajax({
-          url: url,
-          type: 'post',
-          data: data,
-          complete: ajaxCompleteCallback,
-          cache: false,
-          contentType: false,
-          processData: false
-      });
-    }
-    ajax_post();
-  }
-
   function connect() {
-    // Use data from the form
+    // Use data in the form
     let form = document.querySelector(formID),
         url = form.action,
         data;
 
+    console.log(`[connect()]: ${url}`);
+
     data = new FormData(form);
 
     function ajax_post() {
@@ -572,7 +544,7 @@ jQuery(function($){
           url: url,
           type: 'post',
           data: data,
-          complete: ajaxCompleteCallback,
+          complete: ajaxCallback,
           cache: false,
           contentType: false,
           processData: false
@@ -605,13 +577,11 @@ jQuery(function($){
     }
   }
 
-
   wterm.connect = connect;
 
   $(formID).submit(function(event){
     event.preventDefault();
     let result = validateFormData();
-    console.log(result);
     if (result.error) {
       setMsg(result.error);
     } else {

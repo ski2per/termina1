@@ -51,10 +51,12 @@ class SSHClient(paramiko.SSHClient):
         try:
             self._transport.auth_password(username, password)
             return
-        except paramiko.SSHException as e:
-            saved_exception = e
-            assert saved_exception is not None
-            raise saved_exception
+        # except paramiko.SSHException as e:
+        #     saved_exception = e
+        #     assert saved_exception is not None
+        #     raise saved_exception
+        except (paramiko.SSHException, paramiko.ssh_exception.AuthenticationException) as e:
+            raise(e)
 
 
 class CommonMixin:
@@ -204,14 +206,14 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
 
     def get_ssh_client(self):
         ssh = SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.client.WarningPolicy)
+        ssh.set_missing_host_key_policy(paramiko.client.MissingHostKeyPolicy)
         return ssh
 
     def get_args(self):
         hostname = self.get_value('hostname')
         port = int(self.get_value('port'))
         username = self.get_value('username')
-        password = self.get_argument('password', u'')
+        password = self.get_argument('password', '')
         args = (hostname, port, username, password)
         LOG.debug(args)
         return args
@@ -255,14 +257,10 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
             ssh.connect(*args, timeout=conf.timeout)
         except socket.error:
             raise ValueError('Unable to connect to {}:{}'.format(*ssh_endpoint))
-        except paramiko.BadAuthenticationType:
-            raise ValueError('Bad authentication type.')
-        except paramiko.AuthenticationException:
+        except (paramiko.AuthenticationException, paramiko.ssh_exception.AuthenticationException):
             raise ValueError('Authentication failed.')
-        except paramiko.BadHostKeyException:
-            raise ValueError('Bad host key.')
 
-        term = self.get_argument('term', u'') or u'xterm'
+        term = self.get_argument('term', '') or 'xterm'
         shell_channel = ssh.invoke_shell(term=term)
         shell_channel.setblocking(0)
         minion = Minion(self.loop, ssh, shell_channel, ssh_endpoint)
@@ -288,8 +286,8 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
 
         try:
             minion = yield future
-        except (ValueError, paramiko.SSHException) as err:
-            LOG.error(traceback.format_exc())
+        except (ValueError, paramiko.SSHException,
+                paramiko.ssh_exception.AuthenticationException) as err:
             self.result.update(status=str(err))
         else:
             if not minions:
@@ -301,6 +299,8 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
             }
             self.loop.call_later(conf.delay or DELAY, recycle_minion, minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
+
+        print(self.result)
 
         self.write(self.result)
 

@@ -1,31 +1,5 @@
-var jQuery;
+// var jQuery;
 var wterm = {};
-
-
-(function() {
-  // For FormData without getter and setter
-  var proto = FormData.prototype,
-      data = {};
-
-  if (!proto.get) {
-    proto.get = function(name) {
-      if (data[name] === undefined) {
-        var input = document.querySelector(`input[name="${name}"]`);
-        if (input) {
-          data[name] = input.value;
-        }
-      }
-      return data[name];
-    };
-  }
-
-  if (!proto.set) {
-    proto.set = function(name, value) {
-      data[name] = value;
-    };
-  }
-}());
-
 
 jQuery(function($){
   var formID = '#sshForm',
@@ -53,7 +27,15 @@ jQuery(function($){
       urlFormData = {},
       urlOptsData = {},
       validatedFormData,
-      eventOrigin
+      eventOrigin,
+      // term = new window.Terminal();
+      term = new window.Terminal({
+        cursorBlink: true,
+        theme: {
+          background: urlOptsData.bgcolor || 'black'
+        }
+      });
+
 
   // Hide toolbar first
   toolbar.hide();
@@ -127,7 +109,9 @@ jQuery(function($){
 
   function resizeTerminal(term) {
     var geometry = currentGeometry(term);
+    // term.onResize(geometry.cols, geometry.rows);
     term.on_resize(geometry.cols, geometry.rows);
+
   }
 
   function setBackgoundColor(term, color) {
@@ -265,11 +249,10 @@ jQuery(function($){
 
     if (resp.status !== 200) {
       setMsg(resp.status + ': ' + resp.statusText);
-      state = DISCONNECTED;
       return;
     }
 
-    var msg = resp.responseJSON;
+    let msg = resp.responseJSON;
     console.log(msg);
     if (!msg.id) {
       setMsg(msg.status);
@@ -279,24 +262,25 @@ jQuery(function($){
     }
 
     // Prepare websocket
-    var wsURL = window.location.href.split(/\?|#/, 1)[0].replace('http', 'ws'),
-        join = (wsURL[wsURL.length-1] === '/' ? '' : '/'),
-        url = wsURL + join + 'ws?id=' + msg.id,
-        sock = new window.WebSocket(url),
+    console.log(window.location);
+    let proto = window.location.protocol,
+        url = window.location.href,
+        char = (proto === 'http:' ? 'ws:': 'wss:'),
+        wsURL = `${url.replace(proto, char)}ws?id=${msg.id}`,
+        sock = new window.WebSocket(wsURL),
         encoding = 'utf-8',
         decoder = window.TextDecoder ? new window.TextDecoder(encoding) : encoding,
         terminal = document.getElementById('terminal')
-        term = new window.Terminal({
-          cursorBlink: true,
-          theme: {
-            background: urlOptsData.bgcolor || 'black'
-          }
-        });
-
+        // term = new window.Terminal({
+        //   cursorBlink: true,
+        //   theme: {
+        //     background: urlOptsData.bgcolor || 'black'
+        //   }
+        // });
     term.fitAddon = new window.FitAddon.FitAddon();
     term.loadAddon(term.fitAddon);
 
-    console.log(url);
+    console.log(msg);
     if (!msg.encoding) {
       console.log('Unable to detect the default encoding of your server');
       msg.encoding = encoding;
@@ -489,7 +473,7 @@ jQuery(function($){
         resizeTerminal(term);
       }
     });
-  }
+  } // ajaxCallback()
 
   function wrapObject(opts) {
     var obj = {};
@@ -507,7 +491,6 @@ jQuery(function($){
 
 
   function validateFormData() {
-    setMsg("");
     let form = document.querySelector(formID)
     let data = new FormData(form)
     let result = {error: ""}
@@ -533,24 +516,19 @@ jQuery(function($){
         data;
 
     console.log(`[connect()]: ${url}`);
-
     data = new FormData(form);
 
-    function ajax_post() {
-      setMsg('');
-      submitBtn.attr('disabled', true)
+    submitBtn.attr('disabled', true)
 
-      $.ajax({
-          url: url,
-          type: 'post',
-          data: data,
-          complete: ajaxCallback,
-          cache: false,
-          contentType: false,
-          processData: false
-      });
-    }
-    ajax_post();
+    $.ajax({
+        url: url,
+        type: 'post',
+        data: data,
+        complete: ajaxCallback,
+        cache: false,
+        contentType: false,
+        processData: false
+    });
   }
 
   function crossOriginConnect(event)
@@ -580,6 +558,8 @@ jQuery(function($){
   wterm.connect = connect;
 
   $(formID).submit(function(event){
+    // Clean msg
+    setMsg("");
     event.preventDefault();
     let result = validateFormData();
     if (result.error) {
@@ -625,7 +605,6 @@ jQuery(function($){
               $(progress).attr("value", percent);
               if(percent == 100) {
                 progress.hide();
-                info.text("上传完成，文件中转中...");
               }
             }
           }, false);
@@ -677,11 +656,6 @@ jQuery(function($){
   }); // #download.click()
 
   toggle.click(function(){
-//    console.log(progress.is(":visible"));
-//    if(progress.is(":visible")) {
-//      progress.hide()
-//    }
-//    progress.toggle();
     $("#downloadFile").val("");
     progress.hide();
     toolbar.toggle();

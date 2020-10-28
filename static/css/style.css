@@ -8,16 +8,17 @@
     src: url("../fonts/Hack-Regular.ttf");
 }
 
-@font-face {
+/* @font-face {
     font-family: "Zpix";
     src: url("../fonts/Zpix.ttf");
-}
+} */
 
 body {
     padding-top: 10px;
     padding-right: 10px;
     padding-left: 10px;
-    font-family: "Press Start 2P", Zpix;
+    /* font-family: "Press Start 2P", Zpix; */
+    font-family: "Press Start 2P";
     /* font-family: "Hack"; */
 }
 

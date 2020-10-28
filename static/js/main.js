@@ -1,6 +1,3 @@
-// var jQuery;
-var wterm = {};
-
 jQuery(function($){
   var formID = '#sshForm',
       submitBtn = $('#submit'),
@@ -10,8 +7,9 @@ jQuery(function($){
       progress = $("#progress"),
       // uploader = $("#upload"),
       terminal = $('#term'),
+      wterm = {},
       style = {},
-      defaultTitle = '',
+      defaultTitle = 'Term1nal',
       titleElement = document.querySelector('title'),
       customizedFont = document.fonts ? document.fonts.values().next().value : undefined,
       defaultFonts,
@@ -22,19 +20,11 @@ jQuery(function($){
       messages = {1: 'This client is connecting ...', 2: 'This client is already connnected.'},
       maxKeySize = 16384,
       fields = ['hostname', 'port', 'username', 'password'],
-      formKeys = fields.concat(['password', 'totp']),
-      optsKeys = ['bgcolor', 'title', 'encoding', 'command', 'term'],
       urlFormData = {},
-      urlOptsData = {},
+      tmpData = {},
       validatedFormData,
       eventOrigin,
-      // term = new window.Terminal();
-      term = new window.Terminal({
-        cursorBlink: true,
-        theme: {
-          background: urlOptsData.bgcolor || 'black'
-        }
-      });
+      term = new Terminal();
 
 
   // Hide toolbar first
@@ -89,8 +79,11 @@ jQuery(function($){
   }
 
   function getCellSize(term) {
+    console.log('[getCellSize]')
     style.width = term._core._renderService._renderer.dimensions.actualCellWidth;
     style.height = term._core._renderService._renderer.dimensions.actualCellHeight;
+    console.log(style.width);
+    console.log(style.height);
   }
 
   function currentGeometry(term) {
@@ -109,15 +102,8 @@ jQuery(function($){
 
   function resizeTerminal(term) {
     var geometry = currentGeometry(term);
-    // term.onResize(geometry.cols, geometry.rows);
-    term.on_resize(geometry.cols, geometry.rows);
+    term.resizeWindow(geometry.cols, geometry.rows);
 
-  }
-
-  function setBackgoundColor(term, color) {
-    term.setOption('theme', {
-      background: color
-    });
   }
 
   function isCustomFontLoaded() {
@@ -145,29 +131,12 @@ jQuery(function($){
     }
 
     if (isCustomFontLoaded()) {
-       var new_fonts =  customizedFont.family + ', ' + defaultFonts;
-      var new_fonts =  "Hack" + ', ' + defaultFonts;
-      term.setOption('fontFamily', new_fonts);
+       var newFonts =  customizedFont.family + ', ' + defaultFonts;
+      var newFonts =  "Hack" + ', ' + defaultFonts;
+      term.setOption('fontFamily', newFonts);
       term.font_family_updated = true;
-      console.log('Using custom font family ' + new_fonts);
+      console.log('Using custom font family ' + newFonts);
     }
-  }
-
-  function resetFontFamily(term) {
-    if (!term.font_family_updated) {
-      console.log('Already using default font family');
-      return;
-    }
-
-    if (defaultFonts) {
-      term.setOption('fontFamily',  defaultFonts);
-      term.font_family_updated = false;
-      console.log('Using default font family ' + defaultFonts);
-    }
-  }
-
-  function formatGeometry(cols, rows) {
-    return JSON.stringify({'cols': cols, 'rows': rows});
   }
 
   function readTextWithDecoder(file, callback, decoder) {
@@ -225,20 +194,7 @@ jQuery(function($){
     }
   }
 
-  function resetWssh() {
-    var name;
-
-    for (name in wterm) {
-      if (wterm.hasOwnProperty(name) && name !== 'connect') {
-        delete wterm[name];
-      }
-    }
-  }
-
   function setMsg(text) {
-    // status.html(text.split('\n').join('<br/>'));
-    // $('#status').html(text.split('\n').join('<br/>'));
-    // $('#status').html(`<br/>${text}`);
     $('#msg').html(text);
   }
 
@@ -270,13 +226,13 @@ jQuery(function($){
         sock = new window.WebSocket(wsURL),
         encoding = 'utf-8',
         decoder = window.TextDecoder ? new window.TextDecoder(encoding) : encoding,
-        terminal = document.getElementById('terminal')
-        // term = new window.Terminal({
-        //   cursorBlink: true,
-        //   theme: {
-        //     background: urlOptsData.bgcolor || 'black'
-        //   }
-        // });
+        terminal = document.getElementById('terminal'),
+        term = new window.Terminal({
+          cursorBlink: true,
+          theme: {
+            background: tmpData.bgcolor || 'black'
+          }
+        });
     term.fitAddon = new window.FitAddon.FitAddon();
     term.loadAddon(term.fitAddon);
 
@@ -321,10 +277,10 @@ jQuery(function($){
       }
     }
 
-    wterm.setEncoding = setEncoding;
+    // wterm.setEncoding = setEncoding;
 
-    if (urlOptsData.encoding) {
-      if (setEncoding(urlOptsData.encoding) === false) {
+    if (tmpData.encoding) {
+      if (setEncoding(tmpData.encoding) === false) {
         setEncoding(msg.encoding);
       }
     } else {
@@ -332,80 +288,9 @@ jQuery(function($){
     }
 
 
-    wterm.geometry = function() {
-      // for console use
-      var geometry = currentGeometry(term);
-      console.log('Current window geometry: ' + JSON.stringify(geometry));
-    };
-
-    wterm.send = function(data) {
-      // for console use
-      if (!sock) {
-        console.log('Websocket was already closed');
-        return;
-      }
-
-      if (typeof data !== 'string') {
-        console.log('Only string is allowed');
-        return;
-      }
-
-      try {
-        JSON.parse(data);
-        sock.send(data);
-      } catch (SyntaxError) {
-        data = data.trim() + '\r';
-        sock.send(JSON.stringify({'data': data}));
-      }
-    };
-
-    wterm.reset_encoding = function() {
-      // for console use
-      if (encoding === msg.encoding) {
-        console.log('Already reset to ' + msg.encoding);
-      } else {
-        setEncoding(msg.encoding);
-      }
-    };
-
-    wterm.resize = function(cols, rows) {
-      // for console use
-      if (term === undefined) {
-        console.log('Terminal was already destroryed');
-        return;
-      }
-
-      var valid_args = false;
-
-      if (cols > 0 && rows > 0)  {
-        var geometry = currentGeometry(term);
-        if (cols <= geometry.cols && rows <= geometry.rows) {
-          valid_args = true;
-        }
-      }
-
-      if (!valid_args) {
-        console.log('Unable to resize terminal to geometry: ' + formatGeometry(cols, rows));
-      } else {
-        term.on_resize(cols, rows);
-      }
-    };
-
-    wterm.set_bgcolor = function(color) {
-      setBackgoundColor(term, color);
-    };
-
-    wterm.custom_font = function() {
-      updateFontFamily(term);
-    };
-
-    wterm.default_font = function() {
-      resetFontFamily(term);
-    };
-
-    term.on_resize = function(cols, rows) {
+    term.resizeWindow = function(cols, rows) {
       if (cols !== this.cols || rows !== this.rows) {
-        console.log('Resizing terminal to geometry: ' + formatGeometry(cols, rows));
+        console.log('Resizing terminal to geometry: ' + JSON.stringify({'cols': cols, 'rows': rows}));
         this.resize(cols, rows);
         sock.send(JSON.stringify({'resize': [cols, rows]}));
       }
@@ -434,10 +319,10 @@ jQuery(function($){
       updateFontFamily(term);
       term.focus();
       state = CONNECTED;
-      titleElement.text = urlOptsData.title || defaultTitle;
-      if (urlOptsData.command) {
+      titleElement.text = tmpData.title || defaultTitle;
+      if (tmpData.command) {
         setTimeout(function() {
-          sock.send(JSON.stringify({'data': urlOptsData.command+'\r'}));
+          sock.send(JSON.stringify({'data': tmpData.command+'\r'}));
         }, 500);
       }
     };
@@ -458,10 +343,9 @@ jQuery(function($){
       term.dispose();
       term = undefined;
       sock = undefined;
-      resetWssh();
+      // resetWssh();
       setMsg(e.reason);
       state = DISCONNECTED;
-      defaultTitle = 'Term1nal';
       titleElement.text = defaultTitle;
 
       // Remove some event listeners
@@ -506,6 +390,7 @@ jQuery(function($){
     })
     
     storeItems(fields.slice(0, -1), result);
+    tmpData.title = `${data.get('username')}@${data.get('hostname')}`;
     return result;
   }
 
@@ -555,7 +440,7 @@ jQuery(function($){
     }
   }
 
-  wterm.connect = connect;
+  // wterm.connect = connect;
 
   $(formID).submit(function(event){
     // Clean msg

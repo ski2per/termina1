@@ -3,33 +3,27 @@ jQuery(function($){
       submitBtn = $('#submit'),
       info = $('#info'),
       toolbar = $('#toolbar'),
-      toggle = $('#toggle'),
+      menu = $('#menu'),
       progress = $("#progress"),
-      // uploader = $("#upload"),
-      terminal = $('#term'),
       wterm = {},
-      style = {},
-      defaultTitle = 'Term1nal',
+      cell = {},
       titleElement = document.querySelector('title'),
       customizedFont = document.fonts ? document.fonts.values().next().value : undefined,
       defaultFonts,
-      DISCONNECTED = 0,
-      CONNECTING = 1,
-      CONNECTED = 2,
-      state = DISCONNECTED,
-      messages = {1: 'This client is connecting ...', 2: 'This client is already connnected.'},
-      maxKeySize = 16384,
-      fields = ['hostname', 'port', 'username', 'password'],
-      urlFormData = {},
+      fields = ["hostname", "port", "username", "password"],
       tmpData = {},
-      validatedFormData,
-      eventOrigin,
+      defaultTitle = "Term1nal",
+      currentTitle = undefined,
       term = new Terminal();
 
 
   // Hide toolbar first
   toolbar.hide();
-  toggle.hide();
+  menu.hide();
+
+  function setMsg(text) {
+    $('#msg').html(text);
+  }
 
   function copySelectedText() {
     let el = document.createElement('textarea');
@@ -58,51 +52,44 @@ jQuery(function($){
     })
   }
 
+  // Maybe cancel this after using direct upload/download
   function setSession(name, data) {
     window.sessionStorage.clear()
-    console.log(window.sessionStorage)
     window.sessionStorage.setItem(name, data)
-    console.log(window.sessionStorage)
   }
-
   function getSession(name) {
     return window.sessionStorage.getItem(name)
   }
 
-
   function parseXtermStyle() {
+    console.log('[parseXtermStyle]');
     var text = $('.xterm-helpers style').text();
+    console.log(text);
     var arr = text.split('xterm-normal-char{width:');
-    style.width = parseFloat(arr[1]);
+    cell.width = parseFloat(arr[1]);
     arr = text.split('div{height:');
-    style.height = parseFloat(arr[1]);
+    cell.height = parseFloat(arr[1]);
   }
 
-  function getCellSize(term) {
-    console.log('[getCellSize]')
-    style.width = term._core._renderService._renderer.dimensions.actualCellWidth;
-    style.height = term._core._renderService._renderer.dimensions.actualCellHeight;
-    console.log(style.width);
-    console.log(style.height);
-  }
-
-  function currentGeometry(term) {
-    if (!style.width || !style.height) {
+  function getCurrentDimension(term) {
+    if (!cell.width || !cell.height) {
       try {
-        getCellSize(term);
+        cell.width = term._core._renderService._renderer.dimensions.actualCellWidth;
+        cell.height = term._core._renderService._renderer.dimensions.actualCellHeight;
       } catch (TypeError) {
         parseXtermStyle();
       }
     }
 
-    var cols = parseInt(window.innerWidth / style.width, 10) - 1;
-    var rows = parseInt(window.innerHeight / style.height, 10);
-    return {'cols': cols, 'rows': rows};
+    // var cols = parseInt(window.innerWidth / cell.width, 10) - 1;
+    var cols = parseInt(window.innerWidth / cell.width, 10);
+    var rows = parseInt(window.innerHeight / cell.height, 10);
+    return [cols, rows];
   }
 
   function resizeTerminal(term) {
-    var geometry = currentGeometry(term);
-    term.resizeWindow(geometry.cols, geometry.rows);
+    let dim = getCurrentDimension(term);
+    term.resizeWindow(dim[0], dim[1]);
 
   }
 
@@ -131,8 +118,8 @@ jQuery(function($){
     }
 
     if (isCustomFontLoaded()) {
-       var newFonts =  customizedFont.family + ', ' + defaultFonts;
-      var newFonts =  "Hack" + ', ' + defaultFonts;
+      var newFonts =  customizedFont.family + ', ' + defaultFonts;
+      var newFonts =  "Hack" + ", " + defaultFonts;
       term.setOption('fontFamily', newFonts);
       term.font_family_updated = true;
       console.log('Using custom font family ' + newFonts);
@@ -143,7 +130,7 @@ jQuery(function($){
     var reader = new window.FileReader();
 
     if (decoder === undefined) {
-      decoder = new window.TextDecoder('utf-8', {'fatal': true});
+      decoder = new window.TextDecoder("utf-8", {fatal: true});
     }
 
     reader.onload = function() {
@@ -194,22 +181,20 @@ jQuery(function($){
     }
   }
 
-  function setMsg(text) {
-    $('#msg').html(text);
-  }
 
   function ajaxCallback(resp) {
     console.log("ajaxCallback");
-    submitBtn.attr('disabled', false);
-    console.log(resp.status, resp.statusText);
 
+    submitBtn.attr('disabled', false);
     if (resp.status !== 200) {
-      setMsg(resp.status + ': ' + resp.statusText);
+      setMsg(`${resp.status}: ${resp.statusText}`);
       return;
     }
 
-    let msg = resp.responseJSON;
-    console.log(msg);
+    let defaultEncoding = 'utf-8',
+        msg = resp.responseJSON;
+
+    // console.log(msg);
     if (!msg.id) {
       setMsg(msg.status);
       return;
@@ -217,34 +202,41 @@ jQuery(function($){
       setSession("minion", msg.id)
     }
 
+    if (!msg.encoding) {
+      // Use default encoding when unable to detect serer encoding
+      // msg.encoding = defaultEncoding;
+      console.log(`Use default encoding: ${defaultEncoding}`);
+      var decoder = defaultEncoding;
+    } else {
+      console.log(`Server encoding : ${msg.encoding}`);
+      try {
+        var decoder = new window.TextDecoder(msg.encoding);
+      } catch (EncodingError) {
+        console.log(`Unknown encoding: ${msg.encoding}`);
+      }
+      
+    }
+
     // Prepare websocket
-    console.log(window.location);
+    console.log(window.TextDecoder ? "yes" : "no");
+    console.log(msg);
     let proto = window.location.protocol,
         url = window.location.href,
-        char = (proto === 'http:' ? 'ws:': 'wss:'),
+        char = (proto === "http:" ? "ws:": "wss:"),
         wsURL = `${url.replace(proto, char)}ws?id=${msg.id}`,
         sock = new window.WebSocket(wsURL),
-        encoding = 'utf-8',
-        decoder = window.TextDecoder ? new window.TextDecoder(encoding) : encoding,
-        terminal = document.getElementById('terminal'),
+        terminal = document.getElementById("terminal"),
         term = new window.Terminal({
           cursorBlink: true,
           theme: {
-            background: tmpData.bgcolor || 'black'
+            background: "black"
           }
         });
     term.fitAddon = new window.FitAddon.FitAddon();
     term.loadAddon(term.fitAddon);
 
-    console.log(msg);
-    if (!msg.encoding) {
-      console.log('Unable to detect the default encoding of your server');
-      msg.encoding = encoding;
-    } else {
-      console.log('The deault encoding of your server is ' + msg.encoding);
-    }
 
-    function termWrite(text) {
+    function write2terminal(text) {
       if (term) {
         term.write(text);
         if (!term.resized) {
@@ -252,39 +244,6 @@ jQuery(function($){
           term.resized = true;
         }
       }
-    }
-
-    function setEncoding(new_encoding) {
-      // for console use
-      if (!new_encoding) {
-        console.log('An encoding is required');
-        return;
-      }
-
-      if (!window.TextDecoder) {
-        decoder = new_encoding;
-        encoding = decoder;
-        console.log('Set encoding to ' + encoding);
-      } else {
-        try {
-          decoder = new window.TextDecoder(new_encoding);
-          encoding = decoder.encoding;
-          console.log('Set encoding to ' + encoding);
-        } catch (RangeError) {
-          console.log('Unknown encoding ' + new_encoding);
-          return false;
-        }
-      }
-    }
-
-    // wterm.setEncoding = setEncoding;
-
-    if (tmpData.encoding) {
-      if (setEncoding(tmpData.encoding) === false) {
-        setEncoding(msg.encoding);
-      }
-    } else {
-      setEncoding(msg.encoding);
     }
 
 
@@ -297,7 +256,7 @@ jQuery(function($){
     };
 
     term.onData(function(data) {
-      // console.log(data);
+      console.log(`term.onData: ${data}`);
       sock.send(JSON.stringify({'data': data}));
     });
 
@@ -305,12 +264,9 @@ jQuery(function($){
     window.addEventListener('mouseup', copySelectedText);
 
     sock.onopen = function() {
-      toggle.toggle()
-      // toolbar.show();
-      // progress.hide();
+      menu.show();
 
       term.open(terminal);
-      // toggleFullscreen(term);
 
       //Full screen
       $('#terminal .terminal').toggleClass('fullscreen');
@@ -318,34 +274,30 @@ jQuery(function($){
 
       updateFontFamily(term);
       term.focus();
-      state = CONNECTED;
-      titleElement.text = tmpData.title || defaultTitle;
-      if (tmpData.command) {
-        setTimeout(function() {
-          sock.send(JSON.stringify({'data': tmpData.command+'\r'}));
-        }, 500);
-      }
+      // titleElement.text = tmpData.title || defaultTitle;
+      titleElement.text = currentTitle || defaultTitle;
     };
 
     sock.onmessage = function(msg) {
-      readFileAsText(msg.data, termWrite, decoder);
+      console.log(msg.data);
+      readFileAsText(msg.data, write2terminal, decoder);
     };
 
-    sock.onerror = function(e) {
-      console.error(e);
+    sock.onerror = function(event) {
+      console.error(event);
     };
 
-    sock.onclose = function(e) {
+    sock.onclose = function(event) {
+      console.log(`[sock.onclose]: ${event}`);
       // Hide toolbar again
       toolbar.hide();
-      toggle.hide();
+      menu.hide();
 
       term.dispose();
       term = undefined;
       sock = undefined;
       // resetWssh();
-      setMsg(e.reason);
-      state = DISCONNECTED;
+      setMsg(event.reason);
       titleElement.text = defaultTitle;
 
       // Remove some event listeners
@@ -359,19 +311,19 @@ jQuery(function($){
     });
   } // ajaxCallback()
 
-  function wrapObject(opts) {
-    var obj = {};
+  // function wrapObject(opts) {
+  //   var obj = {};
 
-    obj.get = function(attr) {
-      return opts[attr] || '';
-    };
+  //   obj.get = function(attr) {
+  //     return opts[attr] || '';
+  //   };
 
-    obj.set = function(attr, val) {
-      opts[attr] = val;
-    };
+  //   obj.set = function(attr, val) {
+  //     opts[attr] = val;
+  //   };
 
-    return obj;
-  }
+  //   return obj;
+  // }
 
 
   function validateFormData() {
@@ -390,7 +342,8 @@ jQuery(function($){
     })
     
     storeItems(fields.slice(0, -1), result);
-    tmpData.title = `${data.get('username')}@${data.get('hostname')}`;
+    // tmpData.title = `${data.get('username')}@${data.get('hostname')}`;
+    currentTitle = `${data.get('username')}@${data.get('hostname')}`;
     return result;
   }
 
@@ -540,7 +493,7 @@ jQuery(function($){
     window.open(`download?filepath=${file}&minion=${getSession("minion")}`);
   }); // #download.click()
 
-  toggle.click(function(){
+  menu.click(function(){
     $("#downloadFile").val("");
     progress.hide();
     toolbar.toggle();

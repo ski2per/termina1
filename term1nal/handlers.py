@@ -60,13 +60,13 @@ class CommonMixin:
     def get_value(self, name):
         value = self.get_argument(name)
         if not value:
-            raise InvalidValueError('Missing value {}'.format(name))
+            raise InvalidValueError(f'{name} is missing')
         return value
 
     def get_query_value(self, name):
         value = self.get_query_argument(name)
         if not value:
-            raise InvalidValueError('Missing value {}'.format(name))
+            raise InvalidValueError(f'{name} is missing')
         return value
 
     def get_client_endpoint(self) -> set:
@@ -96,9 +96,6 @@ class StreamUploadMixin(CommonMixin):
             return match.group('boundary')
         else:
             return None
-
-    def teardown(self):
-        pass
 
     def _write_chunk(self, chunk):
         trimmed_chunk = self._filter_trailing_carriage_return(chunk)
@@ -143,10 +140,10 @@ class StreamUploadMixin(CommonMixin):
                                 self.filename = m.group('filename')
                             else:
                                 self.filename = 'untitled'
+
+                            self.filename = re.sub('\s+', '_', self.filename)
+                            # A trick to create a remote file handler
                             self.setup_ssh_transport(f'cat > /tmp/{self.filename}')
-                            # self.fh = open(f'/tmp/{filename}', 'wb', newline='')
-                            # self.fh = open(f'/tmp/{self.filename}', 'wb')
-                            # self.fh.sendall(self._filter_trailing_carriage_return(part))
                             self._write_chunk(part)
                 else:
                     self._write_chunk(chunk)
@@ -160,19 +157,6 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
         self.ssh_client = self.get_ssh_client()
         self.debug = self.settings.get('debug', False)
         self.result = dict(id=None, status=None, encoding=None)
-
-    def write_error(self, status_code, **kwargs):
-        if self.request.method == 'POST':
-            exc_info = kwargs.get('exc_info')
-            if exc_info:
-                reason = getattr(exc_info[1], 'log_message', None)
-                if reason:
-                    self._reason = reason
-            self.result.update(status=self._reason)
-            self.set_status(200)
-            self.finish(self.result)
-        else:
-            super(IndexHandler, self).write_error(status_code, **kwargs)
 
     def get_ssh_client(self):
         ssh = paramiko.SSHClient()
@@ -188,12 +172,6 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
         LOG.debug(args)
         return args
 
-    def parse_encoding(self, data):
-        encoding = to_str(data.strip(), 'ascii')
-
-        if is_valid_encoding(encoding):
-            return encoding
-
     def get_default_encoding(self, ssh):
         commands = [
             '$SHELL -ilc "locale charmap"',
@@ -207,12 +185,12 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
                 LOG.info(str(exc))
             else:
                 data = stdout.read()
-                LOG.debug('{!r} => {!r}'.format(command, data))
-                result = self.parse_encoding(data)
+                LOG.debug(f'{command}: {data}')
+                result = data.decode().strip()
                 if result:
                     return result
 
-        LOG.warning('Could not detect the default encoding.')
+        LOG.warning('!!! Unable to detect default encoding')
         return 'utf-8'
 
     def ssh_connect(self, args):
@@ -242,7 +220,7 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
         ip, port = self.get_client_endpoint()
         minions = GRU.get(ip, {})
         if minions and len(minions) >= conf.max_conn:
-            raise tornado.web.HTTPError(403, 'too many connections')
+            raise tornado.web.HTTPError(406, 'Too many connections')
 
         try:
             args = self.get_args()
@@ -266,9 +244,6 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
             }
             self.loop.call_later(conf.delay or DELAY, recycle_minion, minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
-
-        print(self.result)
-
         self.write(self.result)
 
 
@@ -288,6 +263,7 @@ class WSHandler(CommonMixin, tornado.websocket.WebSocketHandler):
             return
 
         try:
+            # Get id from query argument from
             minion_id = self.get_value('id')
             LOG.debug(f"############ minion id: {minion_id}")
 
@@ -305,7 +281,7 @@ class WSHandler(CommonMixin, tornado.websocket.WebSocketHandler):
                 self.close(reason='Websocket authentication failed.')
 
     def on_message(self, message):
-        LOG.debug('{!r} from {}:{}'.format(message, *self.src_addr))
+        LOG.debug(f'{message} from {self.src_addr}')
         minion = self.minion_ref()
         try:
             msg = json.loads(message)

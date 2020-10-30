@@ -51,12 +51,12 @@ class Minion:
             if errno_from_exception(e) in _ERRNO_CONNRESET:
                 self.close(reason='chan error on reading')
         else:
-            LOG.debug('{!r} from {}:{}'.format(data, *self.dst_addr))
+            LOG.debug(f'{data} from {self.dst_addr}')
             if not data:
                 self.close(reason='Bye ~')
                 return
 
-            LOG.debug('{!r} to {}:{}'.format(data, *self.handler.src_addr))
+            LOG.debug(f'{data} to {self.handler.src_addr}')
             try:
                 self.handler.write_message(data, binary=True)
             except tornado.websocket.WebSocketClosedError:
@@ -68,7 +68,7 @@ class Minion:
             return
 
         data = ''.join(self.data_to_dst)
-        LOG.debug('{!r} to {}:{}'.format(data, *self.dst_addr))
+        LOG.debug(f'{data} to {self.dst_addr}')
 
         try:
             sent = self.chan.send(data)

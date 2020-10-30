@@ -9,9 +9,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 conf.base_dir = BASE_DIR
 
 
-# check_encoding_setting(conf.encoding)
-
-
 class Term1nal(tornado.web.Application):
     def __init__(self, loop):
         handlers = [

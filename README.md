@@ -1,6 +1,2 @@
 # term1nal
-A Web Terminal
-
-# Todo
-* Fix upload file with space in name
-* Fix download none-exist file
+A Web Terminal with file upload/download

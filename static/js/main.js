@@ -7,8 +7,7 @@ jQuery(function($){
       progress = $("#progress"),
       cell = {},
       titleElement = document.querySelector('title'),
-      customizedFont = document.fonts ? document.fonts.values().next().value : undefined,
-      defaultFonts,
+      customizedFont = "Hack",  // Named by style.css
       fields = ["hostname", "port", "username", "password"],
       defaultTitle = "Term1nal",
       currentTitle = undefined,
@@ -81,69 +80,24 @@ jQuery(function($){
     return result;
   }
 
-  function parseXtermStyle() {
-    console.log('[parseXtermStyle]');
-    var text = $('.xterm-helpers style').text();
-    console.log(text);
-    var arr = text.split('xterm-normal-char{width:');
-    cell.width = parseFloat(arr[1]);
-    arr = text.split('div{height:');
-    cell.height = parseFloat(arr[1]);
-  }
-
   function getCurrentDimension(term) {
     if (!cell.width || !cell.height) {
       try {
         cell.width = term._core._renderService._renderer.dimensions.actualCellWidth;
         cell.height = term._core._renderService._renderer.dimensions.actualCellHeight;
-      } catch (TypeError) {
-        parseXtermStyle();
+      } catch (error) {
+        console.log("Error getting curent Dimension")
       }
     }
 
-    // var cols = parseInt(window.innerWidth / cell.width, 10) - 1;
-    var cols = parseInt(window.innerWidth / cell.width, 10);
-    var rows = parseInt(window.innerHeight / cell.height, 10);
+    let cols = parseInt(window.innerWidth / cell.width, 10),
+        rows = parseInt(window.innerHeight / cell.height, 10);
     return [cols, rows];
   }
 
   function resizeTerminal(term) {
     let dim = getCurrentDimension(term);
     term.resizeWindow(dim[0], dim[1]);
-
-  }
-
-  function isCustomFontLoaded() {
-    if (!customizedFont) {
-      console.log('No custom font specified.');
-    } else {
-      console.log('Status of custom font ' + customizedFont.family + ': ' + customizedFont.status);
-      if (customizedFont.status === 'loaded') {
-        return true;
-      }
-      if (customizedFont.status === 'unloaded') {
-        return false;
-      }
-    }
-  }
-
-  function updateFontFamily(term) {
-    if (term.font_family_updated) {
-      console.log('Already using custom font family');
-      return;
-    }
-
-    if (!defaultFonts) {
-      defaultFonts = term.getOption('fontFamily');
-    }
-
-    if (isCustomFontLoaded()) {
-      var newFonts =  customizedFont.family + ', ' + defaultFonts;
-      var newFonts =  "Hack" + ", " + defaultFonts;
-      term.setOption('fontFamily', newFonts);
-      term.font_family_updated = true;
-      console.log('Using custom font family ' + newFonts);
-    }
   }
 
   // Use window.Textdecoder to process terminal data from server,
@@ -234,7 +188,6 @@ jQuery(function($){
       }
     }
 
-
     term.resizeWindow = function(cols, rows) {
       if (cols !== this.cols || rows !== this.rows) {
         console.log('Resizing terminal to geometry: ' + JSON.stringify({'cols': cols, 'rows': rows}));
@@ -244,7 +197,6 @@ jQuery(function($){
     };
 
     term.onData(function(data) {
-      console.log(`term.onData: ${data}`);
       sock.send(JSON.stringify({'data': data}));
     });
 
@@ -260,14 +212,13 @@ jQuery(function($){
       $('#terminal .terminal').toggleClass('fullscreen');
       term.fitAddon.fit();
 
-      updateFontFamily(term);
+      term.setOption('fontFamily', customizedFont);
       term.focus();
       // titleElement.text = tmpData.title || defaultTitle;
       titleElement.text = currentTitle || defaultTitle;
     };
 
     sock.onmessage = function(msg) {
-      console.log(msg.data);
       processBlobData(msg.data, write2terminal, decoder);
     };
 
@@ -432,15 +383,6 @@ jQuery(function($){
     return "bye";
   });
 
-  if (document.fonts) {
-    document.fonts.ready.then(
-      function() {
-        if (isCustomFontLoaded() === false) {
-          document.body.style.fontFamily = customizedFont.family;
-        }
-      }
-    );
-  }
   // Restore Hostname, Port and Username(exclude Password) in sshForm
   restoreItems(fields.slice(0, -1));
 });

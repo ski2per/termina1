@@ -47,9 +47,6 @@ LOG = logger()
 
 UnicodeType = str
 
-numeric = re.compile(r'[0-9]+$')
-allowed = re.compile(r'(?!-)[a-z0-9-]{1,63}(?<!-)$', re.IGNORECASE)
-
 
 def to_str(bstr, encoding='utf-8'):
     if isinstance(bstr, bytes):

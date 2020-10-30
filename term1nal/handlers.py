@@ -37,21 +37,26 @@ class CommonMixin:
     filename = ''
 
     def initialize(self, loop):
-        print(self.request.connection)
         self.context = self.request.connection.context
         self.loop = loop
 
-    def setup_ssh_transport(self, cmd):
-        print(f"----------{self.ssh}")
+    def setup_ssh_transport(self, cmd, probe_cmd=None):
         client_ip = self.get_client_endpoint()[0]
         gru = GRU.get(client_ip, {})
         self.args = gru[self.minion_id]["args"]
         print(self.args)
 
         self.ssh = paramiko.SSHClient()
-
         self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self.ssh.connect(*self.args)
+
+        # Use probe_cmd to detect file's existence
+        if probe_cmd:
+            chan = self.ssh.get_transport().open_session()
+            chan.exec_command(probe_cmd)
+            ext = (chan.recv_exit_status())
+            if ext:
+                raise tornado.web.HTTPError(404, "Not found")
 
         transport = self.ssh.get_transport()
         self.fh = transport.open_channel(kind='session')
@@ -181,8 +186,8 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
         for command in commands:
             try:
                 _, stdout, _ = ssh.exec_command(command, get_pty=True)
-            except paramiko.SSHException as exc:
-                LOG.info(str(exc))
+            except paramiko.SSHException as err:
+                LOG.info(str(err))
             else:
                 data = stdout.read()
                 LOG.debug(f'{command}: {data}')
@@ -339,7 +344,11 @@ class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
         gru = GRU.get(client_ip, {})
         self.args = gru[self.minion_id]["args"]
 
-        self.setup_ssh_transport(f'cat {remote_file_path}')
+        try:
+            self.setup_ssh_transport(f'cat {remote_file_path}', f'ls {remote_file_path}')
+        except tornado.web.HTTPError as err:
+            self.write(f'Not found: {remote_file_path}')
+            await self.finish()
 
         self.set_header("Content-Type", "application/octet-stream")
         self.set_header("Accept-Ranges", "bytes")

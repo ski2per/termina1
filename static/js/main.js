@@ -128,8 +128,6 @@ jQuery(function($){
 
 
   function ajaxCallback(resp) {
-    console.log("ajaxCallback");
-
     submitBtn.attr('disabled', false);
     if (resp.status !== 200) {
       setMsg(`${resp.status}: ${resp.statusText}`);
@@ -227,7 +225,6 @@ jQuery(function($){
     };
 
     sock.onclose = function(event) {
-      console.log(`[sock.onclose]: ${event}`);
       // Hide toolbar again
       toolbar.hide();
       menu.hide();
@@ -255,7 +252,6 @@ jQuery(function($){
         url = form.action,
         data;
 
-    console.log(`[connect()]: ${url}`);
     data = new FormData(form);
 
     submitBtn.attr('disabled', true)

@@ -5,13 +5,11 @@ jQuery(function($){
       toolbar = $('#toolbar'),
       menu = $('#menu'),
       progress = $("#progress"),
-      wterm = {},
       cell = {},
       titleElement = document.querySelector('title'),
       customizedFont = document.fonts ? document.fonts.values().next().value : undefined,
       defaultFonts,
       fields = ["hostname", "port", "username", "password"],
-      tmpData = {},
       defaultTitle = "Term1nal",
       currentTitle = undefined,
       term = new Terminal();
@@ -57,8 +55,30 @@ jQuery(function($){
     window.sessionStorage.clear()
     window.sessionStorage.setItem(name, data)
   }
+
   function getSession(name) {
     return window.sessionStorage.getItem(name)
+  }
+  
+  function validateFormData() {
+    let form = document.querySelector(formID)
+    let data = new FormData(form)
+    let result = {error: ""}
+
+    fields.forEach(function(attr){
+      var val = data.get(attr)
+      if (!val) {
+        result.error = `${attr} is required`;
+        return result;
+      } else {
+        result[attr] = val;
+      }
+    })
+    
+    storeItems(fields.slice(0, -1), result);
+    // tmpData.title = `${data.get('username')}@${data.get('hostname')}`;
+    currentTitle = `${data.get('username')}@${data.get('hostname')}`;
+    return result;
   }
 
   function parseXtermStyle() {
@@ -126,58 +146,29 @@ jQuery(function($){
     }
   }
 
-  function readTextWithDecoder(file, callback, decoder) {
-    var reader = new window.FileReader();
+  // Use window.Textdecoder to process terminal data from server,
+  // then write to Xterm.js
+  function processBlobData(blob, callback, decoder) {
+    if (window.TextDecoder) {
+      let reader = new window.FileReader();
 
-    if (decoder === undefined) {
-      decoder = new window.TextDecoder("utf-8", {fatal: true});
-    }
-
-    reader.onload = function() {
-      var text;
-      try {
-        text = decoder.decode(reader.result);
-      } catch (TypeError) {
-        console.log('Decoding error happened.');
-      } finally {
-        if (callback) {
+      reader.onload = function() {
+        let text;
+        try {
+          text = decoder.decode(reader.result);
+        } catch(err) {
+          console.log(`!!! Decode error: ${err}`);
+        } finally {
           callback(text);
         }
+
       }
-    };
-
-    reader.onerror = function(e) {
-      console.error(e);
-    };
-
-    reader.readAsArrayBuffer(file);
-  }
-
-  function readTextWithEncoding(file, callback, encoding) {
-    var reader = new window.FileReader();
-
-    if (encoding === undefined) {
-      encoding = 'utf-8';
-    }
-
-    reader.onload = function() {
-      if (callback) {
-        callback(reader.result);
+      reader.onerror = function(err) {
+        console.log(`Filereader onerror: ${err}`)
       }
-    };
-
-    reader.onerror = function(e) {
-      console.error(e);
-    };
-
-    reader.readAsText(file, encoding);
-  }
-
-  function readFileAsText(file, callback, decoder) {
-    if (!window.TextDecoder) {
-      readTextWithEncoding(file, callback, decoder);
+      reader.readAsArrayBuffer(blob);
     } else {
-      readTextWithDecoder(file, callback, decoder);
+      console.log("!!! Browser does not support TextDecoder");
     }
   }
 
@@ -194,7 +185,6 @@ jQuery(function($){
     let defaultEncoding = 'utf-8',
         msg = resp.responseJSON;
 
-    // console.log(msg);
     if (!msg.id) {
       setMsg(msg.status);
       return;
@@ -218,8 +208,6 @@ jQuery(function($){
     }
 
     // Prepare websocket
-    console.log(window.TextDecoder ? "yes" : "no");
-    console.log(msg);
     let proto = window.location.protocol,
         url = window.location.href,
         char = (proto === "http:" ? "ws:": "wss:"),
@@ -280,7 +268,7 @@ jQuery(function($){
 
     sock.onmessage = function(msg) {
       console.log(msg.data);
-      readFileAsText(msg.data, write2terminal, decoder);
+      processBlobData(msg.data, write2terminal, decoder);
     };
 
     sock.onerror = function(event) {
@@ -293,10 +281,9 @@ jQuery(function($){
       toolbar.hide();
       menu.hide();
 
+      sock = undefined;
       term.dispose();
       term = undefined;
-      sock = undefined;
-      // resetWssh();
       setMsg(event.reason);
       titleElement.text = defaultTitle;
 
@@ -310,42 +297,6 @@ jQuery(function($){
       }
     });
   } // ajaxCallback()
-
-  // function wrapObject(opts) {
-  //   var obj = {};
-
-  //   obj.get = function(attr) {
-  //     return opts[attr] || '';
-  //   };
-
-  //   obj.set = function(attr, val) {
-  //     opts[attr] = val;
-  //   };
-
-  //   return obj;
-  // }
-
-
-  function validateFormData() {
-    let form = document.querySelector(formID)
-    let data = new FormData(form)
-    let result = {error: ""}
-
-    fields.forEach(function(attr){
-      var val = data.get(attr)
-      if (!val) {
-        result.error = `${attr} is required`;
-        return result;
-      } else {
-        result[attr] = val;
-      }
-    })
-    
-    storeItems(fields.slice(0, -1), result);
-    // tmpData.title = `${data.get('username')}@${data.get('hostname')}`;
-    currentTitle = `${data.get('username')}@${data.get('hostname')}`;
-    return result;
-  }
 
   function connect() {
     // Use data in the form
@@ -368,32 +319,6 @@ jQuery(function($){
         processData: false
     });
   }
-
-  function crossOriginConnect(event)
-  {
-    console.log(event.origin);
-    var prop = 'connect',
-        args;
-
-    try {
-      args = JSON.parse(event.data);
-    } catch (SyntaxError) {
-      args = event.data.split('|');
-    }
-
-    if (!Array.isArray(args)) {
-      args = [args];
-    }
-
-    try {
-      eventOrigin = event.origin;
-      wterm[prop].apply(wterm, args);
-    } finally {
-      eventOrigin = undefined;
-    }
-  }
-
-  // wterm.connect = connect;
 
   $(formID).submit(function(event){
     // Clean msg
@@ -501,7 +426,6 @@ jQuery(function($){
   })
 
 
-  window.addEventListener('message', crossOriginConnect, false);
   $(window).on('beforeunload', function(evt) {
     console.log(evt);
     // Use 'beforeunload' to prevent "ctrl+W" from closing browser tab

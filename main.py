@@ -3,11 +3,13 @@ import tornado.web
 import tornado.ioloop
 from term1nal.conf import conf
 from term1nal.handlers import IndexHandler, WSHandler, UploadHandler, DownloadHandler
-from term1nal.utils import get_ssl_context, check_encoding_setting, LOG
+from term1nal.utils import get_ssl_context
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 conf.base_dir = BASE_DIR
-check_encoding_setting(conf.encoding)
+
+
+# check_encoding_setting(conf.encoding)
 
 
 class Term1nal(tornado.web.Application):
@@ -20,7 +22,6 @@ class Term1nal(tornado.web.Application):
         ]
 
         settings = dict(
-            # default_handler_class=NotFoundHandler,
             websocket_ping_interval=conf.ws_ping,
             debug=conf.debug,
             xsrf_cookies=conf.xsrf,
@@ -32,15 +33,6 @@ class Term1nal(tornado.web.Application):
         settings["static_path"] = os.path.join(BASE_DIR, 'static')
 
         super().__init__(handlers, **settings)
-
-
-def setup_listening(app, port, address, server_settings):
-    app.listen(port, address, **server_settings)
-    if not server_settings.get('ssl_options'):
-        server_type = 'http'
-    else:
-        server_type = 'https'
-    LOG.info('Listening on {}:{} ({})'.format(address, port, server_type))
 
 
 def main():

@@ -3,7 +3,6 @@ import os.path
 import json
 import socket
 import struct
-import traceback
 import weakref
 import paramiko
 import tornado.web
@@ -15,7 +14,7 @@ from tornado.process import cpu_count
 from term1nal.conf import conf
 from term1nal.utils import to_str, UnicodeType, is_valid_encoding
 from term1nal.minion import Minion, recycle_minion, GRU
-from term1nal.utils import LOG, make_sure_dir, stage2_copy, stage1_copy, rm_dir, run_async_func
+from term1nal.utils import LOG
 
 try:
     from json.decoder import JSONDecodeError
@@ -30,35 +29,6 @@ class InvalidValueError(Exception):
     pass
 
 
-class SSHClient(paramiko.SSHClient):
-
-    def handler(self, prompt_list):
-        answers = []
-        for prompt_, _ in prompt_list:
-            prompt = prompt_.strip().lower()
-            if prompt.startswith('password'):
-                answers.append(self.password)
-            else:
-                raise ValueError('Unknown prompt: {}'.format(prompt_))
-        return answers
-
-    def auth_interactive(self, username, handler):
-        self._transport.auth_interactive(username, handler)
-
-    def _auth(self, username, password, pkey, *args):
-        self.password = password
-        LOG.info('Trying password authentication')
-        try:
-            self._transport.auth_password(username, password)
-            return
-        # except paramiko.SSHException as e:
-        #     saved_exception = e
-        #     assert saved_exception is not None
-        #     raise saved_exception
-        except (paramiko.SSHException, paramiko.ssh_exception.AuthenticationException) as e:
-            raise(e)
-
-
 class CommonMixin:
     fh = None
     args = None
@@ -67,10 +37,12 @@ class CommonMixin:
     filename = ''
 
     def initialize(self, loop):
+        print(self.request.connection)
         self.context = self.request.connection.context
         self.loop = loop
 
     def setup_ssh_transport(self, cmd):
+        print(f"----------{self.ssh}")
         client_ip = self.get_client_endpoint()[0]
         gru = GRU.get(client_ip, {})
         self.args = gru[self.minion_id]["args"]
@@ -134,8 +106,6 @@ class StreamUploadMixin(CommonMixin):
 
     @staticmethod
     def _filter_trailing_carriage_return(chunk):
-        # trailing = re.match('.*\r\n$', chunk.decode('ISO-8859-1'), re.MULTILINE | re.DOTALL)
-        # if trailing:
         if chunk.endswith("\r\n".encode()):
             # Not using rstrip(), to make sure b'hello\n\r\n' won't become b'hello'
             data, _, _ = chunk.rpartition('\r\n'.encode())
@@ -205,7 +175,7 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
             super(IndexHandler, self).write_error(status_code, **kwargs)
 
     def get_ssh_client(self):
-        ssh = SSHClient()
+        ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.client.MissingHostKeyPolicy)
         return ssh
 
@@ -219,10 +189,7 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
         return args
 
     def parse_encoding(self, data):
-        try:
-            encoding = to_str(data.strip(), 'ascii')
-        except UnicodeDecodeError:
-            return
+        encoding = to_str(data.strip(), 'ascii')
 
         if is_valid_encoding(encoding):
             return encoding
@@ -402,7 +369,6 @@ class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
         self.set_header("Accept-Ranges", "bytes")
         self.set_header("Content-Disposition", f"attachment; filename={filename}")
 
-        # with open(local_file, 'rb') as f:
         while True:
             chunk = self.fh.recv(chunk_size)
             if not chunk:

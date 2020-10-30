@@ -39,9 +39,6 @@ def get_logging_level():
 
 def logger(name='term1nal'):
     log = logging.getLogger(name)
-    # log_format = '[%(asctime)s] %(levelname)s [%(threadName)s]: %(message)s'
-    # date_format = '%Y-%m-%d %H:%M:%S'
-    # logging.basicConfig(format=log_format, datefmt=date_format)
     log.setLevel(get_logging_level())
     return log
 
@@ -62,36 +59,10 @@ def to_str(bstr, encoding='utf-8'):
 
 def is_valid_encoding(encoding):
     try:
-        u'test'.encode(encoding)
+        'ted'.encode(encoding)
     except LookupError:
         return False
     return True
-
-
-def parse_origin_from_url(url):
-    url = url.strip()
-    if not url:
-        return
-
-    if not (url.startswith('http://') or url.startswith('https://') or
-            url.startswith('//')):
-        url = '//' + url
-
-    parsed = urlparse(url)
-    port = parsed.port
-    scheme = parsed.scheme
-
-    if scheme == '':
-        scheme = 'https' if port == 443 else 'http'
-
-    if port == 443 and scheme == 'https':
-        netloc = parsed.netloc.replace(':443', '')
-    elif port == 80 and scheme == 'http':
-        netloc = parsed.netloc.replace(':80', '')
-    else:
-        netloc = parsed.netloc
-
-    return '{}://{}'.format(scheme, netloc)
 
 
 def get_ssl_context(options):
@@ -111,10 +82,6 @@ def get_ssl_context(options):
         return ssl_ctx
 
 
-def check_encoding_setting(encoding):
-    if encoding and not is_valid_encoding(encoding):
-        raise ValueError('Unknown character encoding {!r}.'.format(encoding))
-
 
 def get_sftp_client(*args):
     host, port, username, password = args
@@ -124,36 +91,9 @@ def get_sftp_client(*args):
         client.connect(hostname=host, port=port, username=username, password=password)
         sftp = client.open_sftp()
         return sftp
-
     except (AuthenticationException, SSHException, socket.error) as err:
         print(err)
 
-
-def make_sure_dir(dir):
-    try:
-        os.mkdir(dir)
-    except FileExistsError:
-        pass
-
-
-def stage2_copy(src, *args):
-    filename = os.path.basename(src)
-    sftp = get_sftp_client(*args)
-    sftp.put(src, os.path.join("/tmp", filename))
-
-
-def stage1_copy(minion_id, dst, *args):
-    local_dir = f"/tmp/{minion_id}"
-    make_sure_dir(local_dir)
-
-    file_name = os.path.basename(dst)
-
-    sftp = get_sftp_client(*args)
-    sftp.get(dst, os.path.join(local_dir, file_name))
-
-
-def rm_dir(dir):
-    shutil.rmtree(dir)
 
 async def run_async_func(func, *args):
     loop = asyncio.get_running_loop()

@@ -39,7 +39,14 @@ class CommonMixin:
         self.context = self.request.connection.context
         self.loop = loop
 
-    def setup_ssh_transport(self, cmd, probe_cmd=None):
+    def exec_remote_cmd(self, cmd, probe_cmd=None):
+        """
+        Execute command(cmd or probe-command) on remote host
+
+        :param cmd: Command to execute
+        :param probe_cmd: Probe command to execute before 'cmd'
+        :return: None
+        """
         client_ip = self.get_client_endpoint()[0]
         gru = GRU.get(client_ip, {})
         self.args = gru[self.minion_id]["args"]
@@ -73,10 +80,12 @@ class CommonMixin:
             raise InvalidValueError(f'{name} is missing')
         return value
 
-    def get_client_endpoint(self) -> set:
-        return self.get_real_client_addr() or self.context.address[:2]
+    def get_client_endpoint(self) -> tuple:
+        """
+        Return client endpoint
 
-    def get_real_client_addr(self):
+        :return: (IP, Port) tuple
+        """
         ip = self.request.remote_ip
 
         if ip == self.request.headers.get("X-Real-Ip"):
@@ -84,7 +93,7 @@ class CommonMixin:
         elif ip in self.request.headers.get("X-Forwarded-For", ""):
             port = self.request.headers.get("X-Forwarded-Port")
         else:
-            return
+            return self.context.address[:2]
         port = int(port)
         return ip, port
 
@@ -108,7 +117,7 @@ class StreamUploadMixin(CommonMixin):
     @staticmethod
     def _filter_trailing_carriage_return(chunk):
         if chunk.endswith("\r\n".encode()):
-            # Not using rstrip(), to make sure b'hello\n\r\n' won't become b'hello'
+            # Not to use rstrip(), to make sure b'hello\n\r\n' won't become b'hello'
             data, _, _ = chunk.rpartition('\r\n'.encode())
             return data
         return chunk
@@ -147,7 +156,7 @@ class StreamUploadMixin(CommonMixin):
 
                             self.filename = re.sub('\s+', '_', self.filename)
                             # A trick to create a remote file handler
-                            self.setup_ssh_transport(f'cat > /tmp/{self.filename}')
+                            self.exec_remote_cmd(f'cat > /tmp/{self.filename}')
                             self._write_chunk(part)
                 else:
                     self._write_chunk(chunk)
@@ -336,7 +345,7 @@ class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
         self.args = gru[self.minion_id]["args"]
 
         try:
-            self.setup_ssh_transport(f'cat {remote_file_path}', f'ls {remote_file_path}')
+            self.exec_remote_cmd(f'cat {remote_file_path}', f'ls {remote_file_path}')
         except tornado.web.HTTPError as err:
             self.write(f'Not found: {remote_file_path}')
             await self.finish()

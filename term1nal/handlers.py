@@ -183,7 +183,6 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
             LOG.error(str(err))
         else:
             result = stdout.read().decode().strip()
-            print(result)
             if result:
                 return result
 
@@ -298,7 +297,7 @@ class WSHandler(CommonMixin, tornado.websocket.WebSocketHandler):
         data = msg.get('data')
         if data and isinstance(data, str):
             minion.data_to_dst.append(data)
-            minion.on_write()
+            minion.do_write()
 
     def on_close(self):
         LOG.info('Disconnected from {}:{}'.format(*self.src_addr))

@@ -25,9 +25,9 @@ class Minion:
 
     def __call__(self, fd, events):
         if events & IOLoop.READ:
-            self.on_read()
+            self.do_read()
         if events & IOLoop.WRITE:
-            self.on_write()
+            self.do_write()
         if events & IOLoop.ERROR:
             self.close(reason='ioloop error')
 
@@ -42,7 +42,7 @@ class Minion:
         if mode == IOLoop.WRITE:
             self.loop.call_later(0.1, self, self.fd, IOLoop.WRITE)
 
-    def on_read(self):
+    def do_read(self):
         LOG.debug('minion {} on read'.format(self.id))
         try:
             data = self.chan.recv(BUFFER_SIZE)
@@ -62,7 +62,7 @@ class Minion:
             except tornado.websocket.WebSocketClosedError:
                 self.close(reason='websocket closed')
 
-    def on_write(self):
+    def do_write(self):
         LOG.debug('minion {} on write'.format(self.id))
         if not self.data_to_dst:
             return

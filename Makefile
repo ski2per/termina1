@@ -1,7 +1,7 @@
 #.PHONY: test e2e-test cover gofmt gofmt-fix header-check clean tar.gz docker-push release docker-push-all flannel-git
 
 # Registry used for publishing images
-REGISTRY?=docker.cetcxl.local/terminal
+REGISTRY?=${REGISTRY_PREFIX}terminal
 VERSION_FILE=templates/index.html
 
 # Default tag and architecture. Can be overridden

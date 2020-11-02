@@ -12,7 +12,7 @@ from tornado.ioloop import IOLoop
 from concurrent.futures import ThreadPoolExecutor
 from tornado.process import cpu_count
 from term1nal.conf import conf
-from term1nal.utils import to_str, UnicodeType, is_valid_encoding
+from term1nal.utils import UnicodeType
 from term1nal.minion import Minion, recycle_minion, GRU
 from term1nal.utils import LOG
 
@@ -177,23 +177,16 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
         LOG.debug(args)
         return args
 
-    def get_default_encoding(self, ssh):
-        commands = [
-            '$SHELL -ilc "locale charmap"',
-            '$SHELL -ic "locale charmap"'
-        ]
-
-        for command in commands:
-            try:
-                _, stdout, _ = ssh.exec_command(command, get_pty=True)
-            except paramiko.SSHException as err:
-                LOG.info(str(err))
-            else:
-                data = stdout.read()
-                LOG.debug(f'{command}: {data}')
-                result = data.decode().strip()
-                if result:
-                    return result
+    def get_server_encoding(self, ssh):
+        try:
+            _, stdout, _ = ssh.exec_command("locale charmap")
+        except paramiko.SSHException as err:
+            LOG.error(str(err))
+        else:
+            result = stdout.read().decode().strip()
+            print(result)
+            if result:
+                return result
 
         LOG.warning('!!! Unable to detect default encoding')
         return 'utf-8'
@@ -214,7 +207,7 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
         shell_channel = ssh.invoke_shell(term=term)
         shell_channel.setblocking(0)
         minion = Minion(self.loop, ssh, shell_channel, ssh_endpoint)
-        minion.encoding = conf.encoding if conf.encoding else self.get_default_encoding(ssh)
+        minion.encoding = conf.encoding if conf.encoding else self.get_server_encoding(ssh)
         return minion
 
     def get(self):

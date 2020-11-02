@@ -68,14 +68,13 @@ class CommonMixin:
         self.fh = transport.open_channel(kind='session')
         self.fh.exec_command(cmd)
 
-    def get_value(self, name):
-        value = self.get_argument(name)
-        if not value:
-            raise InvalidValueError(f'{name} is missing')
-        return value
+    def get_value(self, name, type=""):
 
-    def get_query_value(self, name):
-        value = self.get_query_argument(name)
+        if type == "query":
+            value = self.get_query_argument(name)
+        else:
+            value = self.get_argument(name)
+
         if not value:
             raise InvalidValueError(f'{name} is missing')
         return value
@@ -180,7 +179,7 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
         hostname = self.get_value('hostname')
         port = int(self.get_value('port'))
         username = self.get_value('username')
-        password = self.get_argument('password', '')
+        password = self.get_value('password', '')
         args = (hostname, port, username, password)
         LOG.debug(args)
         return args
@@ -335,7 +334,7 @@ class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
     async def get(self):
         chunk_size = 1024 * 1024 * 1  # 1 MiB
 
-        remote_file_path = self.get_query_value("filepath")
+        remote_file_path = self.get_value("filepath", type="query")
         filename = os.path.basename(remote_file_path)
         print(remote_file_path)
         self.minion_id = self.get_value("minion")

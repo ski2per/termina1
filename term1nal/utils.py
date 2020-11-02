@@ -1,7 +1,5 @@
 import os
-import re
 import ssl
-import shutil
 import paramiko
 import logging
 import socket
@@ -9,7 +7,6 @@ import asyncio
 import concurrent.futures
 from paramiko.ssh_exception import AuthenticationException, SSHException
 from tornado.log import enable_pretty_logging
-from urllib.parse import urlparse
 
 enable_pretty_logging()
 
@@ -45,22 +42,6 @@ def logger(name='term1nal'):
 
 LOG = logger()
 
-UnicodeType = str
-
-
-def to_str(bstr, encoding='utf-8'):
-    if isinstance(bstr, bytes):
-        return bstr.decode(encoding)
-    return bstr
-
-
-def is_valid_encoding(encoding):
-    try:
-        'ted'.encode(encoding)
-    except LookupError:
-        return False
-    return True
-
 
 def get_ssl_context(options):
     if not options.cert_file and not options.key_file:
@@ -77,7 +58,6 @@ def get_ssl_context(options):
         ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         ssl_ctx.load_cert_chain(options.cert_file, options.key_file)
         return ssl_ctx
-
 
 
 def get_sftp_client(*args):

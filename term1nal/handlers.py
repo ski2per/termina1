@@ -12,7 +12,6 @@ from tornado.ioloop import IOLoop
 from concurrent.futures import ThreadPoolExecutor
 from tornado.process import cpu_count
 from term1nal.conf import conf
-from term1nal.utils import UnicodeType
 from term1nal.minion import Minion, recycle_minion, GRU
 from term1nal.utils import LOG
 
@@ -297,7 +296,7 @@ class WSHandler(CommonMixin, tornado.websocket.WebSocketHandler):
                 pass
 
         data = msg.get('data')
-        if data and isinstance(data, UnicodeType):
+        if data and isinstance(data, str):
             minion.data_to_dst.append(data)
             minion.on_write()
 

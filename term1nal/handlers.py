@@ -1,24 +1,20 @@
 import re
-import os.path
 import json
 import socket
 import struct
+import os.path
 import weakref
 import paramiko
 import tornado.web
-
+from json.decoder import JSONDecodeError
 from tornado import iostream
 from tornado.ioloop import IOLoop
 from concurrent.futures import ThreadPoolExecutor
 from tornado.process import cpu_count
+
 from term1nal.conf import conf
 from term1nal.minion import Minion, recycle_minion, GRU
 from term1nal.utils import LOG
-
-try:
-    from json.decoder import JSONDecodeError
-except ImportError:
-    JSONDecodeError = ValueError
 
 DELAY = 3
 DEFAULT_PORT = 22
@@ -31,13 +27,25 @@ class InvalidValueError(Exception):
 class CommonMixin:
     fh = None
     args = None
-    ssh = None
+    ssh_transport_client = None
     minion_id = None
     filename = ''
 
     def initialize(self, loop):
         self.context = self.request.connection.context
         self.loop = loop
+
+    def create_ssh_client(self, args):
+        print(args)
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.client.MissingHostKeyPolicy)
+        try:
+            ssh.connect(*args, timeout=conf.timeout)
+        except socket.error:
+            raise ValueError('Unable to connect to {}:{}'.format(*args[:2]))
+        except (paramiko.AuthenticationException, paramiko.ssh_exception.AuthenticationException):
+            raise ValueError('Authentication failed.')
+        return ssh
 
     def exec_remote_cmd(self, cmd, probe_cmd=None):
         """
@@ -49,22 +57,19 @@ class CommonMixin:
         """
         client_ip = self.get_client_endpoint()[0]
         gru = GRU.get(client_ip, {})
-        self.args = gru[self.minion_id]["args"]
-        print(self.args)
+        args = gru[self.minion_id]["args"]
 
-        self.ssh = paramiko.SSHClient()
-        self.ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self.ssh.connect(*self.args)
+        self.ssh_transport_client = self.create_ssh_client(args)
 
         # Use probe_cmd to detect file's existence
         if probe_cmd:
-            chan = self.ssh.get_transport().open_session()
+            chan = self.ssh_transport_client.get_transport().open_session()
             chan.exec_command(probe_cmd)
             ext = (chan.recv_exit_status())
             if ext:
                 raise tornado.web.HTTPError(404, "Not found")
 
-        transport = self.ssh.get_transport()
+        transport = self.ssh_transport_client.get_transport()
         self.fh = transport.open_channel(kind='session')
         self.fh.exec_command(cmd)
 
@@ -155,7 +160,7 @@ class StreamUploadMixin(CommonMixin):
             # Chunk length is 4, means the data received is end of multipart/form-data
             elif chunk_length == 4:
                 # End, close file handler(or similar object)
-                self.ssh.close()
+                self.ssh_transport_client.close()
             else:
                 need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'),
                                           re.DOTALL | re.MULTILINE)
@@ -185,15 +190,12 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=cpu_count() * 5)
 
     def initialize(self, loop):
+        print("indexhandler init")
         super(IndexHandler, self).initialize(loop=loop)
-        self.ssh_client = self.get_ssh_client()
+        # self.ssh_client = self.get_ssh_client()
+        self.ssh_term_client = None
         self.debug = self.settings.get('debug', False)
         self.result = dict(id=None, status=None, encoding=None)
-
-    def get_ssh_client(self):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.client.MissingHostKeyPolicy)
-        return ssh
 
     def get_args(self):
         hostname = self.get_value('hostname')
@@ -217,17 +219,10 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
         LOG.warning('!!! Unable to detect default encoding')
         return 'utf-8'
 
-    def ssh_connect(self, args):
-        ssh = self.ssh_client
+    def create_minion(self, args):
+        ssh = self.ssh_term_client
         ssh_endpoint = args[:2]
         LOG.info('Connecting to {}:{}'.format(*ssh_endpoint))
-
-        try:
-            ssh.connect(*args, timeout=conf.timeout)
-        except socket.error:
-            raise ValueError('Unable to connect to {}:{}'.format(*ssh_endpoint))
-        except (paramiko.AuthenticationException, paramiko.ssh_exception.AuthenticationException):
-            raise ValueError('Authentication failed.')
 
         term = self.get_argument('term', '') or 'xterm'
         shell_channel = ssh.invoke_shell(term=term)
@@ -248,13 +243,12 @@ class IndexHandler(CommonMixin, tornado.web.RequestHandler):
 
         try:
             args = self.get_args()
-        except InvalidValueError as err:
-            raise tornado.web.HTTPError(400, str(err))
-
-        future = self.executor.submit(self.ssh_connect, args)
-
-        try:
+            self.ssh_term_client = self.create_ssh_client(args)
+            future = self.executor.submit(self.create_minion, args)
             minion = yield future
+        except InvalidValueError as err:
+            # Catch error in self.get_args()
+            raise tornado.web.HTTPError(400, str(err))
         except (ValueError, paramiko.SSHException,
                 paramiko.ssh_exception.AuthenticationException) as err:
             self.result.update(status=str(err))
@@ -388,6 +382,6 @@ class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
                 del chunk
                 await tornado.web.gen.sleep(0.000000001)  # 1 nanosecond
 
-        self.ssh.close()
+        self.ssh_transport_client.close()
         await self.finish()
         print("download ended")

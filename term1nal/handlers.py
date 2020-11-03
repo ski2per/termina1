@@ -101,7 +101,7 @@ class StreamUploadMixin(CommonMixin):
     content_type = None
     boundary = None
 
-    def get_boundary(self):
+    def _get_boundary(self):
         """
         Return the boundary of multipart/form-data
 
@@ -140,7 +140,7 @@ class StreamUploadMixin(CommonMixin):
         :return: None
         """
         if not self.boundary:
-            self.boundary = self.get_boundary()
+            self.boundary = self._get_boundary()
 
         # Split data with multipart/form-data boundary
         sep = f'--{self.boundary}'

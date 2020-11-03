@@ -344,7 +344,7 @@ class UploadHandler(StreamUploadMixin, CommonMixin, tornado.web.RequestHandler):
 
     async def post(self):
         print("upload ended")
-        await self.finish(f'/tmp/{self.filename}')
+        await self.finish(f'/tmp/{self.filename}')  # Send filename back
 
 
 class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
@@ -364,8 +364,8 @@ class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
         self.args = gru[self.minion_id]["args"]
 
         try:
-            self.exec_remote_cmd(f'cat {remote_file_path}', f'ls {remote_file_path}')
-        except tornado.web.HTTPError as err:
+            self.exec_remote_cmd(cmd=f'cat {remote_file_path}', probe_cmd=f'ls {remote_file_path}')
+        except tornado.web.HTTPError:
             self.write(f'Not found: {remote_file_path}')
             await self.finish()
 
@@ -378,9 +378,9 @@ class DownloadHandler(CommonMixin, tornado.web.RequestHandler):
             if not chunk:
                 break
             try:
-                # write the chunk to response
+                # Write the chunk to response
                 self.write(chunk)
-                # send the chunk to client
+                # Send the chunk to client
                 await self.flush()
             except iostream.StreamClosedError:
                 break

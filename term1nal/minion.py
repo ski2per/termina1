@@ -7,10 +7,9 @@ from term1nal.utils import LOG
 from term1nal.utils import GRU
 
 
-BUFFER_SIZE = 64 * 1024
-
-
 class Minion:
+    BUFFER_SIZE = 64 * 1024
+
     def __init__(self, loop, ssh, chan, dst_addr):
         self.loop = loop
         self.ssh = ssh
@@ -29,7 +28,7 @@ class Minion:
         if events & IOLoop.WRITE:
             self.do_write()
         if events & IOLoop.ERROR:
-            self.close(reason='ioloop error')
+            self.close(reason='IOLOOP ERROR')
 
     def set_handler(self, handler):
         if not self.handler:
@@ -45,22 +44,22 @@ class Minion:
     def do_read(self):
         LOG.debug('minion {} on read'.format(self.id))
         try:
-            data = self.chan.recv(BUFFER_SIZE)
+            data = self.chan.recv(self.BUFFER_SIZE)
         except (OSError, IOError) as e:
             LOG.error(e)
             if errno_from_exception(e) in _ERRNO_CONNRESET:
-                self.close(reason='chan error on reading')
+                self.close(reason='CHAN ERROR DOING READ ')
         else:
             LOG.debug(f'{data} from {self.dst_addr}')
             if not data:
-                self.close(reason='Bye ~')
+                self.close(reason='BYE ~')
                 return
 
             LOG.debug(f'{data} to {self.handler.src_addr}')
             try:
                 self.handler.write_message(data, binary=True)
             except tornado.websocket.WebSocketClosedError:
-                self.close(reason='websocket closed')
+                self.close(reason='WEBSOCKET CLOSED')
 
     def do_write(self):
         LOG.debug('minion {} on write'.format(self.id))
@@ -92,9 +91,7 @@ class Minion:
             return
         self.closed = True
 
-        LOG.info(
-            'Closing minion {} with reason: {}'.format(self.id, reason)
-        )
+        LOG.info(f'Closing minion {self.id}: {reason}')
         if self.handler:
             self.loop.remove_handler(self.fd)
             self.handler.close(reason=reason)

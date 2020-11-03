@@ -102,6 +102,11 @@ class StreamUploadMixin(CommonMixin):
     boundary = None
 
     def get_boundary(self):
+        """
+        Return the boundary of multipart/form-data
+
+        :return: FormData boundary or None if not found
+        """
         self.content_type = self.request.headers.get('Content-Type', '')
         match = re.match('.*;\sboundary="?(?P<boundary>.*)"?$', self.content_type.strip())
         if match:
@@ -115,24 +120,39 @@ class StreamUploadMixin(CommonMixin):
 
     @staticmethod
     def _filter_trailing_carriage_return(chunk):
+        """
+        Filter out trailing carriage return(\r\n),
+        Not to use rstrip(), to make sure b'hello\n\r\n' won't become b'hello'
+        Use str.rpartition() instead of str.rstrip to avoid b'hello\n\r\n' being stripped to b'hello'
+
+        :param chunk:  Bytes string
+        :return: Bytes string with '\r\n' filtered out
+        """
         if chunk.endswith("\r\n".encode()):
-            # Not to use rstrip(), to make sure b'hello\n\r\n' won't become b'hello'
             data, _, _ = chunk.rpartition('\r\n'.encode())
             return data
         return chunk
 
     def data_received(self, data):
+        """
+
+        :param data:
+        :return: None
+        """
         if not self.boundary:
             self.boundary = self.get_boundary()
 
+        # Split data with multipart/form-data boundary
         sep = f'--{self.boundary}'
         chunks = data.split(sep.encode())
 
         for chunk in chunks:
             chunk_length = len(chunk)
 
+            # If chunk length is 0, which means the data received is the beginning of multipart/form-data
             if chunk_length == 0:
-                pass  # Beginning, just ignore
+                pass
+            # Chunk length is 4, means the data received is end of multipart/form-data
             elif chunk_length == 4:
                 # End, close file handler(or similar object)
                 self.ssh.close()

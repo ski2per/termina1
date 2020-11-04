@@ -1,5 +1,5 @@
 # term1nal
-A simple web terminal written in Python and JavaScript, which contains these features:
+A simple web terminal written in Python and JavaScript with contains these features:
 
 * Web terminal support by Xterm.js
 * Copy on selecting text

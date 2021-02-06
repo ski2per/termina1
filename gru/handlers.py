@@ -190,7 +190,8 @@ class StreamUploadMixin(BaseMixin):
                     if part:
                         header_text = header.decode('ISO-8859-1').strip()
                         if 'minion' in header_text:
-                            self.minion_id = part.decode('ISO-8859-1').strip()
+                            pass
+                            # self.minion_id = part.decode('ISO-8859-1').strip()
 
                         if 'upload' in header_text:
                             m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
@@ -294,6 +295,7 @@ class TermHandler(BaseMixin, tornado.web.RequestHandler):
             }
             self.loop.call_later(conf.delay or DELAY, recycle_minion, minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
+        self.set_secure_cookie("minion", minion.id)
         self.write(self.result)
 
 
@@ -367,6 +369,7 @@ class WSHandler(BaseMixin, tornado.websocket.WebSocketHandler):
 class UploadHandler(StreamUploadMixin, BaseMixin, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(UploadHandler, self).initialize(loop=loop)
+        self.minion_id = self.get_secure_cookie("minion").decode()
 
     async def post(self):
         await self.finish(f'/tmp/{self.filename}')  # Send filename back

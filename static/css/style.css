@@ -8,11 +8,6 @@
     src: url("../fonts/Hack-Regular.ttf");
 }
 
-/* @font-face {
-    font-family: "Zpix";
-    src: url("../fonts/Zpix.ttf");
-} */
-
 body {
     padding-top: 10px;
     padding-right: 10px;
@@ -43,9 +38,12 @@ body {
     width:auto;
     height:220px;
     z-index:254;
-    background-color: black;
+    background-color: #52616a;
 }
 
+/* ==================================== */
+/* Toolbar Style                        */
+/* ==================================== */
 #toolbar label {
     top: 10px;
     left: 10px;

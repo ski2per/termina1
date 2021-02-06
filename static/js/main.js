@@ -13,6 +13,7 @@ jQuery(function($){
       fields = ["hostname", "port", "username", "password"],
       defaultTitle = "Term1nal",
       currentTitle = undefined,
+      reader = {},
       term = new Terminal();
 
 
@@ -251,6 +252,23 @@ jQuery(function($){
     document.getElementById('login-dialog').close();
   } // connect function
 
+  // function upload(event) {
+  //   event.preventDefault();
+
+  //   reader = new FileReader();
+  //   file = document.querySelector("#upload").files[0];
+
+  //   upload_chunk(0);
+  // }
+  // function upload_chunk(start) {
+  //   var next_slice = start + slice_size + 1;
+  //   var blob = file.slice( start, next_slice );
+    
+  //   reader.onloadend = function(event) {
+
+  //   }
+  // }
+
 
   // ====================================
   // Setup Event Listeners
@@ -291,10 +309,13 @@ jQuery(function($){
   // Listen to "file" change event to upload file,
   // monitor "progress" event to calculate uploading percentage
   $("#upload").change(function(){
+    console.log(this);
     var file = this.files[0]
+    console.log(file);
     var formData = new FormData()
-    formData.append("minion", getSession("minion"))
+    // formData.append("minion", getSession("minion"))
     formData.append("upload", file)
+
 
     $.ajax({
       url: '/upload',

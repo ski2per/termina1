@@ -1,6 +1,8 @@
 jQuery(function($){
-  var formID = '#sshForm',
-      submitBtn = $('#submit'),
+  var minionLoginFormID = '#minion-login-form',
+      minionLoginBtn = $('#minion-login-btn'),
+      websshLoginFormID = '#webssh-login-form',
+      websshLoginBtn = $('#webssh-login-btn'),
       info = $('#info'),
       toolbar = $('#toolbar'),
       menu = $('#menu'),
@@ -17,6 +19,7 @@ jQuery(function($){
   // Hide toolbar first
   toolbar.hide();
   menu.hide();
+  // popupForm.hide();
 
   function setMsg(text) {
     $('#msg').html(text);
@@ -29,26 +32,6 @@ jQuery(function($){
     document.execCommand('copy');
   }
 
-  // Store hostname, port, username in local storage
-  function storeItems(names, data) {
-    names.forEach((name) => {
-      value = data[name];
-      if (value){
-        window.localStorage.setItem(name, value);
-      }
-    });
-  }
-
-  // Restore hostname, port, username from local storage
-  function restoreItems(names) {
-    names.forEach((name) => {
-      value = window.localStorage.getItem(name);
-      if (value) {
-        $(`#${name}`).val(value);
-      }
-    })
-  }
-
   // Maybe cancel this after using direct upload/download
   function setSession(name, data) {
     window.sessionStorage.clear()
@@ -59,24 +42,23 @@ jQuery(function($){
     return window.sessionStorage.getItem(name)
   }
   
-  function validateFormData() {
-    let form = document.querySelector(formID)
-    let data = new FormData(form)
+  function validateFormData(formID, formFields) {
+    let data = new FormData(document.querySelector(formID));
     let result = {error: ""}
 
-    fields.forEach(function(attr){
+    formFields.forEach(function(attr){
       var val = data.get(attr)
       if (!val) {
         result.error = `${attr} is required`;
         return result;
-      } else {
-        result[attr] = val;
       }
+      // } else {
+      //   result[attr] = val;
+      // }
     })
-    
-    storeItems(fields.slice(0, -1), result);
-    // tmpData.title = `${data.get('username')}@${data.get('hostname')}`;
-    currentTitle = `${data.get('username')}@${data.get('hostname')}`;
+
+    // Set current tab title
+    currentTitle = `${data.get('username')}@port:${data.get('port')}`;
     return result;
   }
 
@@ -128,7 +110,9 @@ jQuery(function($){
 
 
   function ajaxCallback(resp) {
-    submitBtn.attr('disabled', false);
+    // Enable login button
+    minionLoginBtn.attr('disabled', false);
+
     if (resp.status !== 200) {
       setMsg(`${resp.status}: ${resp.statusText}`);
       return;
@@ -246,36 +230,54 @@ jQuery(function($){
     });
   } // ajaxCallback()
 
-  function connect() {
-    // Use data in the form
-    let form = document.querySelector(formID),
-        url = form.action,
-        data;
+  function connect(formID) {
+    // Disable login button
+    minionLoginBtn.attr('disabled', false);
 
-    data = new FormData(form);
-
-    submitBtn.attr('disabled', true)
+    let data = new FormData(document.querySelector(formID))
+    console.log(JSON.stringify(Object.fromEntries(data)));
 
     $.ajax({
-        url: url,
+        url: '/',
         type: 'post',
-        data: data,
+        // data: JSON.stringify({"port": port}),
+        data: JSON.stringify(Object.fromEntries(data)),
         complete: ajaxCallback,
         cache: false,
         contentType: false,
         processData: false
     });
-  }
 
-  $(formID).submit(function(event){
+    document.getElementById('login-dialog').close();
+  } // connect function
+
+
+  // ====================================
+  // Setup Event Listeners
+  // ====================================
+  minionLoginBtn.click(function(event){
+    event.preventDefault();
     // Clean msg
     setMsg("");
-    event.preventDefault();
-    let result = validateFormData();
+    console.log(fields.slice(2, -1));
+    let result = validateFormData(minionLoginFormID, ["username", "password"]);
     if (result.error) {
       setMsg(result.error);
     } else {
-      connect();
+      connect(minionLoginFormID);
+      console.log(result);
+    }
+  });
+  websshLoginBtn.click(function(event){
+    event.preventDefault();
+    // Clean msg
+    setMsg("");
+    let result = validateFormData(websshLoginFormID, fields);
+    if (result.error) {
+      setMsg(result.error);
+    } else {
+      connect(websshLoginFormID);
+      console.log(result);
     }
   });
 
@@ -301,7 +303,7 @@ jQuery(function($){
       cache: false,
       contentType: false,
       processData: false,
-      timeout: 60000,
+      timeout: 600000,
       async: true,
 
       xhr: function() {
@@ -372,13 +374,20 @@ jQuery(function($){
     info.text("")
   })
 
-
   $(window).on('beforeunload', function(evt) {
     console.log(evt);
     // Use 'beforeunload' to prevent "ctrl+W" from closing browser tab
     return "bye";
   });
 
-  // Restore Hostname, Port and Username(exclude Password) in sshForm
-  restoreItems(fields.slice(0, -1));
+  $("#connect a").click(function(event){
+    var port = $(this).data("value");
+    console.log(port)
+    // Set port filed value
+    $('#port').val(port);
+
+    $('#login-dialog').css('left',event.pageX);
+    $('#login-dialog').css('top',event.pageY);
+    document.getElementById('login-dialog').showModal();
+  });
 });

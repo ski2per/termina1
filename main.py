@@ -1,9 +1,9 @@
 import os.path
 import tornado.web
 import tornado.ioloop
-from term1nal.conf import conf
-from term1nal.handlers import IndexHandler, WSHandler, UploadHandler, DownloadHandler
-from term1nal.utils import get_ssl_context
+from gru.conf import conf
+from gru.handlers import IndexHandler, TermHandler, WSHandler, UploadHandler, DownloadHandler, PortHandler, RegisterHandler, DeregisterHandler
+from gru.utils import get_ssl_context
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 conf.base_dir = BASE_DIR
@@ -12,10 +12,14 @@ conf.base_dir = BASE_DIR
 class Term1nal(tornado.web.Application):
     def __init__(self, loop):
         handlers = [
-            (r"/", IndexHandler, dict(loop=loop)),
+            # (r"/", IndexHandler, dict(loop=loop)),
+            (r"/", TermHandler, dict(loop=loop)),
             (r"/ws", WSHandler, dict(loop=loop)),
             (r"/upload", UploadHandler, dict(loop=loop)),
-            (r"/download", DownloadHandler, dict(loop=loop))
+            (r"/download", DownloadHandler, dict(loop=loop)),
+            (r"/port", PortHandler),
+            (r"/register", RegisterHandler),
+            (r"/deregister/([^/]+)", DeregisterHandler),
         ]
 
         settings = dict(

@@ -1,19 +1,21 @@
 @font-face {
-    font-family: "Press Start 2P";
-    src: url("../fonts/PressStart2P-Regular.ttf");
+    font-family: "Hack";
+    src: url("../fonts/Hack-Regular.ttf");
 }
 
 @font-face {
-    font-family: "Hack";
-    src: url("../fonts/Hack-Regular.ttf");
+    font-family: "pixel-font-7";
+    src: url("../fonts/pixel-font-7.ttf");
 }
 
 body {
     padding-top: 10px;
     padding-right: 10px;
     padding-left: 10px;
+    font-family:Helvetica,Tahoma, Arial,"PingFang SC",STXihei,"Microsoft yahei","WenQuanYi Micro Hei",sans-serif;
     /* font-family: "Press Start 2P", Zpix; */
-    font-family: "Press Start 2P";
+    /* font-family: "Press Start 2P"; */
+    /* font-family: "pixel-font-7"; */
     /* font-family: "Hack"; */
 }
 
@@ -30,6 +32,7 @@ body {
 
 
 #toolbar {
+    font-family: "pixel-font-7";
     position:fixed;
     top: 0px;
     bottom:0;
@@ -40,13 +43,20 @@ body {
     z-index:254;
     background-color: #52616a;
 }
-
 /* ==================================== */
-/* Toolbar Style                        */
+/* Toolbar CSS                          */
 /* ==================================== */
 #toolbar label {
     top: 10px;
     left: 10px;
+}
+
+#toolbar button{
+    padding: 0 4px 0 0;
+}
+#toolbar label {
+    padding: 0 4px 0 0;
+    color: black;
 }
 
 #progress {
@@ -56,12 +66,45 @@ body {
 }
 
 .top-spaced {
-    padding-top: 40px;
+    padding-top: 30px;
+}
+.top-spaced-small {
+    padding-top: 20px;
 }
 
-.float {
+.top-right {
     position: fixed;
     right: 10px;
     top:20px;
     z-index: 255;
+}
+.top-right button{
+    padding-left: 4px;
+    padding-right: 8px;
+    padding-top: 0px;
+    padding-bottom: 0px;
+}
+
+/* ==================================== */
+/* Toolbar CSS                          */
+/* ==================================== */
+.ted-table {
+    border: solid 1px #DDEEEE;
+    border-collapse: collapse;
+    border-spacing: 0;
+    font: normal 13px Arial, sans-serif;
+}
+.ted-table thead th {
+    background-color: #56A902;
+    border: solid 1px #DDEEEE;
+    color: white;
+    padding: 10px;
+    text-align: left;
+    /* text-shadow: 1px 1px 1px #fff; */
+}
+.ted-table tbody td {
+    border: solid 1px #DDEEEE;
+    color: #333;
+    padding: 10px;
+    text-shadow: 1px 1px 1px #fff;
 }

@@ -10,71 +10,142 @@
     <link href="static/css/style.css" rel="stylesheet" type="text/css"/>
   </head>
   <body>
+    <!--Minion Login dialog-->
+    <dialog class="nes-dialog" id="login-dialog">
+      <form id="minion-login-form" action="" method="post" enctype="multipart/form-data" {% if debug %} novalidate{% end %}>
+        <div class="row">
+          <div class="col">
+            <!-- <label for="username">Username</label> -->
+            <input class="nes-input" type="text" name="username" value="" placeholder="Username" required/>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <!-- <label for="password">Password</label> -->
+            <input class="nes-input" type="password" name="password" value="" placeholder="Password" required autocomplete="on" />
+          </div>
+        </div>
+        <input type="hidden" name="term" value="xterm-256color" />
+        <input type="hidden" id="port" name="port" value="" />
+        <input type="hidden" name="type" value="minion" />
+        {% module xsrf_form_html() %}
+        <menu>
+          <button id="minion-login-btn" class="nes-btn is-success">Login</button>
+        </menu>
+      </form>
+    </dialog>
+
     <div class="row">
+      <div class="col">
+          <h2>Online client:</h2>
+          <table class="ted-table">
+          <thead>
+            <tr>
+                <th>Name</th>
+                <th>Internal IP</th>
+                <th>Public IP</th>
+                <th>Reversed Port</th>
+                <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for client in clients %}
+            <tr>
+                <td>
+                    {{ client["name"] }}
+                </td>
+                <td>
+                    {{ client["ip"] }}
+                </td>
+                <td>
+                    {{ client["publicip"] }}
+                </td>
+                <td>
+                    {{ client["port"] }}
+                </td>
+                <td id="connect">
+                    <a class="link" data-value="{{ client['port'] }}" href="javascript: void(0)">Connect</a>
+                    <!-- <h1 class="link" data-value="{{ client['port'] }}">Connect</h1> -->
+                </td>
+            </tr>
+            {% end %}
+            </tbody>
+          </table>
+        </div><!--Minions-->
+
       <div class="col">
         <div class="nes-container with-title">
           <p class="title">Web Terminal - VERSION</p>
-          <form id="sshForm" action="" method="post" enctype="multipart/form-data"{% if debug %} novalidate{% end %}>
+          <form id="webssh-login-form" action="" method="post" enctype="multipart/form-data"{% if debug %} novalidate{% end %}>
             <div class="row">
               <div class="col">
                 <label for="Hostname">Hostname</label>
-                <input class="nes-input" type="text" id="hostname" name="hostname" value="" required>
+                <input class="nes-input" type="text" name="hostname" value="" required>
               </div>
               <div class="col">
                 <label for="Port">Port</label>
-                <input class="nes-input" type="number" id="port" name="port" placeholder="22" value="22" min="1" max="65535">
+                <input class="nes-input" type="number" name="port" placeholder="22" value="22" min="1" max="65535">
               </div>
             </div>
             <div class="row">
               <div class="col">
                 <label for="Username">Username</label>
-                <input class="nes-input" type="text" id="username" name="username" value="" required>
+                <input class="nes-input" type="text" name="username" value="" required>
               </div>
               <div class="col">
                 <label for="Password">Password</label>
-                <input class="nes-input" type="password" id="password" name="password" value="">
+                <input class="nes-input" type="password" name="password" autocomplete="on" value="">
               </div>
             </div>
-            <input type="hidden" id="term" name="term" value="xterm-256color">
+            <input type="hidden" name="term" value="xterm-256color">
             {% module xsrf_form_html() %}
-            <button id="submit" type="submit" class="nes-btn is-primary">Connect</button>
+            <button id="webssh-login-btn" class="nes-btn is-primary">Connect</button>
             <button type="reset" class="nes-btn is-error">Reset</button>
           </form>
         </div>
-        <div id="toolbar">
-          <!-- Upload -->
-          <div class="row">
-            <div class="col-1">
-              <label class="nes-btn is-success">
-                <span>Upload</span>
-                <input id="upload" type="file"></input>
-              </label>
-            </div>
-            <div class="col-3">
-              <progress id="progress" class="nes-progress is-success is-dark" value="0" max="100"></progress>
-            </div>
-            <div class="col-8 top-spaced">
-              <span id="info" class="nes-text is-warning"></span>
-            </div>
-          </div>
-          <!-- Download -->
-          <div class="row">
-            <div class="col-10">
-              <!-- <input type="text" id="downloadFile" class="nes-input is-dark" placeholder="输入要下载文件的绝对路径"> -->
-              <input type="text" id="downloadFile" class="nes-input is-dark" placeholder="Input absolute path to download">
-            </div>
-            <div class="col-2">
-              <button type="button" id="download" class="nes-btn is-warning">Download</button>
-            </div>
-          </div>
-        </div>
-        <div class="float">
-          <button id="menu" type="button" class="nes-btn is-error" style=" padding-top: 0px;">☰</button>
-        </div>
-        <div id="terminal"></div>
-        <div id="msg" style="color: red;"></div>
-      </div> <!-- Right Column -->
+      </div><!--General Web SSH-->
     </div>
+    
+
+    <div id="toolbar">
+      <!-- Upload -->
+      <div class="row">
+        <div class="col-1">
+          <label class="nes-btn is-success">
+            <span>Upload</span>
+            <input id="upload" type="file"></input>
+          </label>
+        </div>
+        <div class="col-3">
+          <progress id="progress" class="nes-progress is-success is-dark" value="0" max="100"></progress>
+        </div>
+        <div class="col-8 top-spaced">
+          <span id="info" class="nes-text is-warning"></span>
+        </div>
+      </div>
+      <!-- Download -->
+      <div class="row">
+        <div class="col-10">
+          <input type="text" id="downloadFile" class="nes-input is-dark" placeholder="Input absolute path to download">
+        </div>
+        <div class="col-2 top-spaced-small">
+          <button type="button" id="download" class="nes-btn is-warning">Download</button>
+        </div>
+      </div>
+    </div> <!--Toolbar-->
+
+    <!-- Menu -->
+    <div class="top-right">
+      <button id="menu" type="button" class="nes-btn is-error">☰</button>
+    </div>
+
+    <!-- Terminal(core) -->
+    <div id="terminal"></div>
+
+    <!-- Message -->
+    <div id="msg" style="color: red;"></div>
+
+    <!-- Preload font -->
     <div class="font_preload" style="opacity: 0">
       <span style="font-family: Hack;"></span>
     </div>

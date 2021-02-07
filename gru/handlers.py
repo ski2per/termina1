@@ -31,6 +31,7 @@ class BaseMixin:
     ssh_transport_client = None
     minion_id = None
     filename = ''
+    stream_idx = 0
 
     def initialize(self, loop):
         self.context = self.request.connection.context
@@ -134,18 +135,40 @@ class StreamUploadMixin(BaseMixin):
         :return: FormData boundary or None if not found
         """
         self.content_type = self.request.headers.get('Content-Type', '')
+        print(self.content_type)
         match = re.match('.*;\sboundary="?(?P<boundary>.*)"?$', self.content_type.strip())
         if match:
             return match.group('boundary')
         else:
             return None
 
-    def _write_chunk(self, chunk):
-        trimmed_chunk = self._filter_trailing_carriage_return(chunk)
+    def _partition_chunk(self, chunk: bytes)->(bytes, bytes):
+        # A chunk has the format below:
+        # b'\r\nContent-Disposition: form-data; name="upload"; filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n\r\nworld\r\n\r\n'
+        # after partition, this will return:
+        # 'form_data_info': b'\r\nContent-Disposition: form-data; name="upload"; filename="hello.txt"\r\nContent-Type: text/plain'
+        # 'raw': b'hello\r\n\r\nworld\r\n\r\n'
+        form_data_info, _, raw = chunk.partition(b"\r\n\r\n")
+        return form_data_info, raw
+
+
+    def _write_chunk(self, chunk: bytes) -> None:
+        trimmed_chunk = self._trim_trailing_carriage_return(chunk)
         self.channel.sendall(trimmed_chunk)
 
+    def _extract_filename(self, data: bytes) -> str:
+        LOG.debug(data)
+        ptn = re.compile(b'filename="(.*)"')
+        m = ptn.search(data)
+        if m:
+            name =  m.group(1).decode()
+        else:
+            name = "untitled"
+        # Replace spaces with underscore
+        return re.sub('\s+', '_', name)
+
     @staticmethod
-    def _filter_trailing_carriage_return(chunk):
+    def _trim_trailing_carriage_return(chunk :bytes) -> bytes:
         """
         Filter out trailing carriage return(\r\n),
         Not to use rstrip(), to make sure b'hello\n\r\n' won't become b'hello'
@@ -154,12 +177,15 @@ class StreamUploadMixin(BaseMixin):
         :param chunk:  Bytes string
         :return: Bytes string with '\r\n' filtered out
         """
-        if chunk.endswith("\r\n".encode()):
-            data, _, _ = chunk.rpartition('\r\n'.encode())
-            return data
+        if chunk.endswith(b"\r\n"):
+            # trimmed, _, _ = chunk.rpartition(b'\r\n')
+            # return trimmed
+            return chunk[:-2]
         return chunk
 
     def data_received(self, data):
+        # A simple multipart/form-data
+        # b'------WebKitFormBoundarysiqXYmhALsFpsMuh\r\nContent-Disposition: form-data; name="upload"; filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n\r\nworld\r\n\r\n------WebKitFormBoundarysiqXYmhALsFpsMuh--\r\n'
         """
 
         :param data:
@@ -167,45 +193,77 @@ class StreamUploadMixin(BaseMixin):
         """
         if not self.boundary:
             self.boundary = self._get_boundary()
+            LOG.debug(f"multipart/form-data boundary: {self.boundary}")
+            print(self.boundary)
 
         # Split data with multipart/form-data boundary
         sep = f'--{self.boundary}'
-        chunks = data.split(sep.encode())
+        chunks = data.split(sep.encode('ISO-8859-1'))
+        chunks_len = len(chunks)
 
-        for chunk in chunks:
-            chunk_length = len(chunk)
+        # DEBUG
+        # print("=====================================")
+        # print(f"Stream idx: {self.stream_idx}")
+        # print(f"CHUNKS length: {len(chunks)}")
 
-            # If chunk length is 0, which means the data received is the beginning of multipart/form-data
-            if chunk_length == 0:
-                pass
-            # Chunk length is 4, means the data received is end of multipart/form-data
-            elif chunk_length == 4:
-                # End, close file handler(or similar object)
-                self.ssh_transport_client.close()
+        # Data is small enough in one stream
+        if chunks_len == 3:
+            form_data_info, raw = self._partition_chunk(chunks[1])
+            filename = self._extract_filename(form_data_info)
+            # print(self._trim_trailing_carriage_return(raw))
+            self.exec_remote_cmd(f'cat > /tmp/{filename}')
+            self._write_chunk(raw)
+            self.ssh_transport_client.close()
+        else:
+            if self.stream_idx == 0:
+                form_data_info, raw = self._partition_chunk(chunks[1])
+                filename = self._extract_filename(form_data_info)
+                self.exec_remote_cmd(f'cat > /tmp/{filename}')
+                self._write_chunk(raw)
             else:
-                need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'),
-                                          re.DOTALL | re.MULTILINE)
-                if need2partition:
-                    header, _, part = chunk.partition('\r\n\r\n'.encode('ISO-8859-1'))
-                    if part:
-                        header_text = header.decode('ISO-8859-1').strip()
-                        if 'minion' in header_text:
-                            pass
-                            # self.minion_id = part.decode('ISO-8859-1').strip()
-
-                        if 'upload' in header_text:
-                            m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
-                            if m:
-                                self.filename = m.group('filename')
-                            else:
-                                self.filename = 'untitled'
-
-                            self.filename = re.sub('\s+', '_', self.filename)
-                            # A trick to create a remote file handler
-                            self.exec_remote_cmd(f'cat > /tmp/{self.filename}')
-                            self._write_chunk(part)
+                # Form data in the middle data stream
+                if chunks_len == 1:
+                    self._write_chunk(chunks[0])
                 else:
-                    self._write_chunk(chunk)
+                    # 'chunks_len' == 2, the LAST stream
+                    self._write_chunk(chunks[0])
+                    self.ssh_transport_client.close()
+        self.stream_idx += 1
+
+            # ====================================
+            # OLD CODE
+            # ====================================
+            # # If chunk length is 0, which means the data received is the beginning of multipart/form-data
+            # if chunk_length == 0:
+            #     pass
+            # # Chunk length is 4, means the data received is end of multipart/form-data
+            # elif chunk_length == 4:
+            #     # End, close file handler(or similar object)
+            #     self.ssh_transport_client.close()
+            # else:
+            #     need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'),
+            #                               re.DOTALL | re.MULTILINE)
+            #     if need2partition:
+            #         header, _, part = chunk.partition('\r\n\r\n'.encode('ISO-8859-1'))
+            #         if part:
+            #             header_text = header.decode('ISO-8859-1').strip()
+            #             if 'minion' in header_text:
+            #                 pass
+            #                 # self.minion_id = part.decode('ISO-8859-1').strip()
+            #
+            #             if 'upload' in header_text:
+            #                 m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
+            #                 if m:
+            #                     self.filename = m.group('filename')
+            #                 else:
+            #                     self.filename = 'untitled'
+            #
+            #                 self.filename = re.sub('\s+', '_', self.filename)
+            #                 # A trick to create a remote file handler
+            #                 self.exec_remote_cmd(f'cat > /tmp/{self.filename}')
+            #                 self._write_chunk(part)
+            #     else:
+            #         self._write_chunk(chunk)
 
 
 class IndexHandler(BaseMixin, tornado.web.RequestHandler):

@@ -1,6 +1,22 @@
 version: '3.5'
 
 services:
+  apple:
+    image: panubo/sshd
+    hostname: apple
+    environment:
+      - SSH_USERS=ted:1000:1000:/bin/bash
+      - TCP_FORWARDING=true
+      - SSH_ENABLE_PASSWORD_AUTH=true
+    ports: 
+      - "60022:22"
+    volumes:
+      - ./entrypoint.d/:/etc/entrypoint.d/
+    restart: always
+
+version: '3.5'
+
+services:
   terminal:
     image: docker.cetcxl.local/terminal:latest
     hostname: terminal

@@ -36,6 +36,8 @@
     </dialog>
 
     <div class="row">
+      <!-- mode can be set by environment GRU_MODE -->
+      {% if mode == "gru" %}
       <div class="col">
           <h2>Online client:</h2>
           <table class="ted-table">
@@ -72,6 +74,7 @@
             </tbody>
           </table>
         </div><!--Minions-->
+        {% end %}
 
       <div class="col">
         <div class="nes-container with-title">

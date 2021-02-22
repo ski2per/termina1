@@ -323,8 +323,9 @@ class TermHandler(BaseMixin, tornado.web.RequestHandler):
         return minion
 
     def get(self):
+        print(conf)
         clients = [get_cache(k) for k in get_redis_keys()]
-        self.render('index.html', debug=self.debug, clients=clients)
+        self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
 
     @tornado.gen.coroutine
     def post(self):

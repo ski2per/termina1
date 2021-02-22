@@ -44,6 +44,8 @@ class Conf(dict):
 
 
 conf = Conf()
+# Mode: <term | gru>
+conf.mode = os.getenv("GRU_MODE", "term")
 conf.host = os.getenv("GRU_HOST", "0.0.0.0")
 conf.port = int(os.getenv("GRU_PORT", 8000))
 conf.ssl_port = int(os.getenv("GRU_SSL_PORT", 4433))

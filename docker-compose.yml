@@ -1,29 +1,26 @@
 version: '3.5'
 
 services:
-  apple:
-    image: panubo/sshd
-    hostname: apple
+  gru:
+    image: sshd:ted
+    hostname: gru
     environment:
       - SSH_USERS=ted:1000:1000:/bin/bash
       - TCP_FORWARDING=true
       - SSH_ENABLE_PASSWORD_AUTH=true
+      #- TERM_CERT_FILE=/ssl.crt
+      #- TERM_KEY_FILE=/ssl.key
+      - TERM_MAX_CONN=40
+      - REDIS_HOST=redis
     ports: 
+      #- "4433:4433"
       - "60022:22"
+      - "8000:8000"
     volumes:
       - ./entrypoint.d/:/etc/entrypoint.d/
     restart: always
 
-version: '3.5'
-
-services:
-  terminal:
-    image: docker.cetcxl.local/terminal:latest
-    hostname: terminal
-    environment:
-      #- TERM_CERT_FILE=/ssl.crt
-      #- TERM_KEY_FILE=/ssl.key
-      - TERM_MAX_CONN=40
-    ports: 
-        - "4433:4433"
+  redis:
+    image: redis
     restart: always
+

@@ -161,6 +161,7 @@ class StreamUploadMixin(BaseMixin):
         ptn = re.compile(b'filename="(.*)"')
         m = ptn.search(data)
         if m:
+            print(m.group(1).decode())
             name =  m.group(1).decode()
         else:
             name = "untitled"
@@ -209,16 +210,16 @@ class StreamUploadMixin(BaseMixin):
         # Data is small enough in one stream
         if chunks_len == 3:
             form_data_info, raw = self._partition_chunk(chunks[1])
-            filename = self._extract_filename(form_data_info)
+            self.filename = self._extract_filename(form_data_info)
             # print(self._trim_trailing_carriage_return(raw))
-            self.exec_remote_cmd(f'cat > /tmp/{filename}')
+            self.exec_remote_cmd(f'cat > /tmp/{self.filename}')
             self._write_chunk(raw)
             self.ssh_transport_client.close()
         else:
             if self.stream_idx == 0:
                 form_data_info, raw = self._partition_chunk(chunks[1])
-                filename = self._extract_filename(form_data_info)
-                self.exec_remote_cmd(f'cat > /tmp/{filename}')
+                self.filename = self._extract_filename(form_data_info)
+                self.exec_remote_cmd(f'cat > /tmp/{self.filename}')
                 self._write_chunk(raw)
             else:
                 # Form data in the middle data stream
@@ -353,7 +354,7 @@ class TermHandler(BaseMixin, tornado.web.RequestHandler):
             }
             self.loop.call_later(conf.delay or DELAY, recycle_minion, minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
-        self.set_secure_cookie("minion", minion.id)
+            self.set_secure_cookie("minion", minion.id)
         self.write(self.result)
 
 

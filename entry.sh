@@ -204,26 +204,45 @@ for f in /etc/entrypoint.d/*; do
     fi
 done
 
-stop() {
-    echo "Received SIGINT or SIGTERM. Shutting down $DAEMON"
-    # Get PID
-    local pid=$(cat /var/run/$DAEMON/$DAEMON.pid)
-    # Set TERM
-    kill -SIGTERM "${pid}"
-    # Wait for exit
-    wait "${pid}"
-    # All done.
-    echo "Done."
-}
+#stop() {
+#    echo "Received SIGINT or SIGTERM. Shutting down $DAEMON"
+#    # Get PID
+#    local pid=$(cat /var/run/$DAEMON/$DAEMON.pid)
+#    # Set TERM
+#    kill -SIGTERM "${pid}"
+#    # Wait for exit
+#    wait "${pid}"
+#    # All done.
+#    echo "Done."
+#}
 
-echo "Running $@"
-if [ "$(basename $1)" == "$DAEMON" ]; then
-    trap stop SIGINT SIGTERM
-    $@ &
-    pid="$!"
-    mkdir -p /var/run/$DAEMON && echo "${pid}" > /var/run/$DAEMON/$DAEMON.pid
-    wait "${pid}"
-    exit $?
-else
-    exec "$@"
-fi
+python3 main.py &
+/usr/sbin/sshd -D -e -f /etc/ssh/sshd_config &
+while sleep 60; do
+  ps aux |grep sshd |grep -q -v grep
+  PROCESS_1_STATUS=$?
+  ps aux |grep python3 |grep -q -v grep
+  PROCESS_2_STATUS=$?
+  # If the greps above find anything, they exit with 0 status
+  # If they are not both 0, then something is wrong
+  if [ $PROCESS_1_STATUS -ne 0 -o $PROCESS_2_STATUS -ne 0 ]; then
+    echo "One of the processes has already exited."
+    exit 1
+  else
+    echo "sshd status: $PROCESS_1_STATUS"
+    echo "python status: $PROCESS_2_STATUS"
+  fi
+done
+
+#echo "Running $@"
+#if [ "$(basename $1)" == "$DAEMON" ]; then
+#    trap stop SIGINT SIGTERM
+#    $@ &
+#    pid="$!"
+#    mkdir -p /var/run/$DAEMON && echo "${pid}" > /var/run/$DAEMON/$DAEMON.pid
+#    wait "${pid}"
+#    run_python_app
+#    exit $?
+#else
+#    exec "$@"
+#fi

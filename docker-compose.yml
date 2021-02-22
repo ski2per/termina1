@@ -2,9 +2,10 @@ version: '3.5'
 
 services:
   gru:
-    image: sshd:ted
+    image: gru:ted
     hostname: gru
     environment:
+      #- DEBUG=true
       - SSH_USERS=ted:1000:1000:/bin/bash
       - TCP_FORWARDING=true
       - SSH_ENABLE_PASSWORD_AUTH=true
@@ -12,6 +13,7 @@ services:
       #- TERM_KEY_FILE=/ssl.key
       - TERM_MAX_CONN=40
       - REDIS_HOST=redis
+      - GRU_MODE=gru
     ports: 
       #- "4433:4433"
       - "60022:22"

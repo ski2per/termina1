@@ -20,7 +20,7 @@ func (endpoint *Endpoint) String() string {
 	return fmt.Sprintf("%s:%d", endpoint.Host, endpoint.Port)
 }
 
-func ConnectToGru(minion Endpoint, gru Endpoint, forwardPort int) {
+func ConnectToGru(minion Endpoint, gru Endpoint, forwardPort int) error {
 	log.Info("Connecting to Gru")
 
 	remoteReverseEndpoint := Endpoint{
@@ -40,13 +40,17 @@ func ConnectToGru(minion Endpoint, gru Endpoint, forwardPort int) {
 	// Connect to remote SSH server(Gru)
 	remoteConn, err := ssh.Dial("tcp", gru.String(), sshConfig)
 	if err != nil {
-		log.Fatalf("Dial into remote host error: %s", err)
+		// log.Fatalf("Dial into remote host error: %s", err)
+		log.Errorf("Dial into remote host error: %s", err)
+		return err
 	}
+	defer remoteConn.Close()
 
 	// Listen SSH forwarding port on remote host
 	reverseConn, err := remoteConn.Listen("tcp", remoteReverseEndpoint.String())
 	if err != nil {
-		log.Fatalf("Listen forwaring port on remote host error: %s", err)
+		log.Errorf("Listen forwaring port on remote host error: %s", err)
+		return err
 	}
 	defer reverseConn.Close()
 

@@ -81,7 +81,11 @@ func main() {
 	// wg.Add(1)
 	go func() {
 		// minion.ConnectToGru(local, remote, cfg.GruReversePort)
-		minion.ConnectToGru(local, remote, randomPort)
+		err := minion.ConnectToGru(local, remote, randomPort)
+		if err != nil {
+			log.Errorf("Error connecting Gru, deregister port(%d)", randomPort)
+			m.Deregister(randomPort)
+		}
 		// wg.Done()
 	}()
 

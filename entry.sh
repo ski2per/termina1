@@ -6,8 +6,6 @@ set -e
 
 DAEMON=sshd
 
-echo "> Starting SSHD"
-
 # Copy default config from cache, if required
 if [ ! "$(ls -A /etc/ssh)" ]; then
     cp -a /etc/ssh.cache/* /etc/ssh/
@@ -123,78 +121,11 @@ if [ -v MOTD ]; then
     echo -e "$MOTD" > /etc/motd
 fi
 
-# PasswordAuthentication (disabled by default)
-if [[ "${SSH_ENABLE_PASSWORD_AUTH}" == "true" ]]; then
-    echo 'set /files/etc/ssh/sshd_config/PasswordAuthentication yes' | augtool -s 1> /dev/null
-    echo "WARNING: password authentication enabled."
-else
-    echo 'set /files/etc/ssh/sshd_config/PasswordAuthentication no' | augtool -s 1> /dev/null
-    echo "INFO: password authentication is disabled by default. Set SSH_ENABLE_PASSWORD_AUTH=true to enable."
-fi
+# Enable password authentication by default
+echo 'set /files/etc/ssh/sshd_config/PasswordAuthentication yes' | augtool -s 1> /dev/null
 
-configure_sftp_only_mode() {
-    echo "INFO: configuring sftp only mode"
-    : ${SFTP_CHROOT:='/data'}
-    chown 0:0 ${SFTP_CHROOT}
-    chmod 755 ${SFTP_CHROOT}
-    printf '%s\n' \
-        'set /files/etc/ssh/sshd_config/Subsystem/sftp "internal-sftp"' \
-        'set /files/etc/ssh/sshd_config/AllowTCPForwarding no' \
-        'set /files/etc/ssh/sshd_config/GatewayPorts no' \
-        'set /files/etc/ssh/sshd_config/X11Forwarding no' \
-        'set /files/etc/ssh/sshd_config/ForceCommand internal-sftp' \
-        "set /files/etc/ssh/sshd_config/ChrootDirectory ${SFTP_CHROOT}" \
-    | augtool -s 1> /dev/null
-}
-
-configure_scp_only_mode() {
-    echo "INFO: configuring scp only mode"
-    USERS=$(echo $SSH_USERS | tr "," "\n")
-    for U in $USERS; do
-        _NAME=$(echo "${U}" | cut -d: -f1)
-        usermod -s '/usr/bin/rssh' ${_NAME}
-    done
-    (grep '^[a-zA-Z]' /etc/rssh.conf.default; echo "allowscp") > /etc/rssh.conf
-}
-
-configure_rsync_only_mode() {
-    echo "INFO: configuring rsync only mode"
-    USERS=$(echo $SSH_USERS | tr "," "\n")
-    for U in $USERS; do
-        _NAME=$(echo "${U}" | cut -d: -f1)
-        usermod -s '/usr/bin/rssh' ${_NAME}
-    done
-    (grep '^[a-zA-Z]' /etc/rssh.conf.default; echo "allowrsync") > /etc/rssh.conf
-}
-
-configure_ssh_options() {
-    # Enable AllowTcpForwarding
-    if [[ "${TCP_FORWARDING}" == "true" ]]; then
-        echo 'set /files/etc/ssh/sshd_config/AllowTcpForwarding yes' | augtool -s 1> /dev/null
-    fi
-    # Enable GatewayPorts
-    if [[ "${GATEWAY_PORTS}" == "true" ]]; then
-        echo 'set /files/etc/ssh/sshd_config/GatewayPorts yes' | augtool -s 1> /dev/null
-    fi
-    # Disable SFTP
-    if [[ "${DISABLE_SFTP}" == "true" ]]; then
-        printf '%s\n' \
-            'rm /files/etc/ssh/sshd_config/Subsystem/sftp' \
-            'rm /files/etc/ssh/sshd_config/Subsystem' \
-        | augtool -s 1> /dev/null
-    fi
-}
-
-# Configure mutually exclusive modes
-if [[ "${SFTP_MODE}" == "true" ]]; then
-    configure_sftp_only_mode
-elif [[ "${SCP_MODE}" == "true" ]]; then
-    configure_scp_only_mode
-elif [[ "${RSYNC_MODE}" == "true" ]]; then
-    configure_rsync_only_mode
-else
-    configure_ssh_options
-fi
+# Enable TCP forwarding
+echo 'set /files/etc/ssh/sshd_config/AllowTcpForwarding yes' | augtool -s 1> /dev/null
 
 # Run scripts in /etc/entrypoint.d
 for f in /etc/entrypoint.d/*; do
@@ -204,17 +135,6 @@ for f in /etc/entrypoint.d/*; do
     fi
 done
 
-#stop() {
-#    echo "Received SIGINT or SIGTERM. Shutting down $DAEMON"
-#    # Get PID
-#    local pid=$(cat /var/run/$DAEMON/$DAEMON.pid)
-#    # Set TERM
-#    kill -SIGTERM "${pid}"
-#    # Wait for exit
-#    wait "${pid}"
-#    # All done.
-#    echo "Done."
-#}
 
 python3 main.py &
 /usr/sbin/sshd -D -e -f /etc/ssh/sshd_config &
@@ -229,20 +149,7 @@ while sleep 60; do
     echo "One of the processes has already exited."
     exit 1
   else
-    echo "sshd status: $PROCESS_1_STATUS"
-    echo "python status: $PROCESS_2_STATUS"
+    echo "INFO: sshd status: $PROCESS_1_STATUS"
+    echo "INFO: python status: $PROCESS_2_STATUS"
   fi
 done
-
-#echo "Running $@"
-#if [ "$(basename $1)" == "$DAEMON" ]; then
-#    trap stop SIGINT SIGTERM
-#    $@ &
-#    pid="$!"
-#    mkdir -p /var/run/$DAEMON && echo "${pid}" > /var/run/$DAEMON/$DAEMON.pid
-#    wait "${pid}"
-#    run_python_app
-#    exit $?
-#else
-#    exec "$@"
-#fi

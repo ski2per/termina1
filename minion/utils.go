@@ -1,7 +1,6 @@
 package minion
 
 import (
-	"fmt"
 	"net"
 	"regexp"
 
@@ -19,7 +18,6 @@ func GetLocalAddr() (ipv4addr net.IP) {
 		return
 	}
 	for _, iface := range ifaces {
-		fmt.Println(iface.Name)
 		if re.MatchString(iface.Name) {
 			addrs, err := iface.Addrs()
 			if err != nil {

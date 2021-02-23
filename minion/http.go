@@ -6,16 +6,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os"
 
 	log "github.com/sirupsen/logrus"
 )
 
 type Minion struct {
-	GruHost     string `env:"GRU_HOST" envDefault:"localhost"`
-	GruSSHPort  int    `env:"GRU_SSH_PORT" envDefault:"22"`
-	GruUsername string `env:"GRU_USERNAME" envDefault:"gru"`
-	GruPassword string `env:"GRU_PASSWORD" envDefault:"P@ssw0rd"`
+	GruHost        string `env:"GRU_HOST" envDefault:"localhost"`
+	GruSSHPort     int    `env:"GRU_SSH_PORT" envDefault:"22"`
+	GruUsername    string `env:"GRU_USERNAME" envDefault:"gru"`
+	GruPassword    string `env:"GRU_PASSWORD" envDefault:"P@ssw0rd"`
 	GruAPIEndpoint string `env:"GRU_API_ENDPOINT" envDefault:"http://localhost:8000"`
 	MinionHost     string `env:"MINION_HOST" envDefault:"localhost"`
 	MinionSSHPort  int    `env:"MINION_SSH_PORT" envDefault:"22"`
@@ -39,15 +38,16 @@ func (m *Minion) GetRandomPort() int {
 	url := fmt.Sprintf("%s/port", m.GruAPIEndpoint)
 	response, err := http.Get(url)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		// fmt.Println(err)
+		log.Fatalln(err)
+		// os.Exit(1)
 	}
 
 	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("error get response data, retry")
-		fmt.Println(responseData)
-		os.Exit(1)
+		log.Error("error get response data, retry please")
+		log.Fatal(responseData)
+		// os.Exit(1)
 	}
 
 	random := randomPort{}

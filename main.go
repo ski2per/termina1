@@ -1,12 +1,9 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"os/signal"
-	"sync"
-	"syscall"
+	"time"
 
 	"github.com/caarlos0/env"
 	log "github.com/sirupsen/logrus"
@@ -48,7 +45,13 @@ func main() {
 
 	log.Debugf("%+v\n", m)
 	log.Info("Trying to get random reversed port from Gru")
-	randomPort := m.GetRandomPort()
+	randomPort, err := m.GetRandomPort()
+	for err != nil {
+		time.Sleep(2 * time.Second)
+		log.Error("Error while getting random port from Gru, retrying...")
+		randomPort, err = m.GetRandomPort()
+	} // Loop for getting random port
+
 	log.Infof("Got random reversed port: %d\n", randomPort)
 
 	internalIP := minion.GetLocalAddr()
@@ -57,10 +60,14 @@ func main() {
 		Port:       randomPort,
 		InternalIP: internalIP.String(),
 	}
+	// Debug for registration error
+	// time.Sleep(20 * time.Second)
 
-	m.Register(meta)
-	// Debug
-	// os.Exit(0)
+	err = m.Register(meta)
+	for err != nil {
+		err = m.Register(meta)
+		time.Sleep(2 * time.Second)
+	} // Loop for registration
 
 	remote := minion.Endpoint{
 		Username: m.GruUsername,
@@ -74,36 +81,19 @@ func main() {
 		Port: m.MinionSSHPort,
 	}
 
-	_, cancel := context.WithCancel(context.Background())
+	// _, cancel := context.WithCancel(context.Background())
 
 	// FIND NO WAY to exit blocked goroutine
 	// wg := sync.WaitGroup{}
 	// wg.Add(1)
-	go func() {
+
+	for {
 		// minion.ConnectToGru(local, remote, cfg.GruReversePort)
 		err := minion.ConnectToGru(local, remote, randomPort)
 		if err != nil {
-			log.Errorf("Error connecting Gru, deregister port(%d)", randomPort)
-			m.Deregister(randomPort)
+			log.Errorf("Lost connection to Gru, try to reconnect(port:%d)", randomPort)
+			// m.Deregister(randomPort)
+			time.Sleep(2 * time.Second)
 		}
-		// wg.Done()
-	}()
-
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-
-	cancel() // Signal cancellation to context.Context
-	// wg.Wait() // Block here until are workers are done
-	<-sigs // Blocks here until interrupted
-
-	log.Info("Shutting down")
-	// Make sure minion deregistered
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		m.Deregister(randomPort)
-		wg.Done()
-	}()
-	wg.Wait()
-	log.Info("Bye Gru")
+	}
 }

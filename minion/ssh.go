@@ -65,7 +65,9 @@ func ConnectToGru(minion Endpoint, gru Endpoint, forwardPort int) error {
 		// Block here to until reverse SSH connection on Gru
 		reverse, err := reverseConn.Accept()
 		if err != nil {
-			log.Fatal(err)
+			log.Error("Lost connection to Gru")
+			log.Error(err)
+			return err
 		}
 		// Debug, optimize later
 		go func() {

@@ -3,6 +3,7 @@ package minion
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -34,44 +35,51 @@ type Meta struct {
 	PublicIP   string `json:"publicip"`
 }
 
-func (m *Minion) GetRandomPort() int {
+func (m *Minion) GetRandomPort() (int, error) {
 	url := fmt.Sprintf("%s/port", m.GruAPIEndpoint)
 	response, err := http.Get(url)
 	if err != nil {
 		// fmt.Println(err)
-		log.Fatalln(err)
+		// log.Fatalln(err)
+		log.Error(err)
 		// os.Exit(1)
+		return -1, err
 	}
 
 	responseData, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.Error("error get response data, retry please")
-		log.Fatal(responseData)
+		// log.Fatal(responseData)
+		log.Error(responseData)
+		return -1, err
 		// os.Exit(1)
 	}
 
 	random := randomPort{}
 	json.Unmarshal(responseData, &random)
-	return random.Port
+	return random.Port, err
 }
 
-func (m *Minion) Register(meta Meta) {
+func (m *Minion) Register(meta Meta) error {
 	log.Infof("Register minion with meta: %+v\n", meta)
 	data, err := json.Marshal(meta)
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return err
 	}
 
 	url := fmt.Sprintf("%s/register", m.GruAPIEndpoint)
 	resp, err := http.Post(url, "application/json", bytes.NewBuffer(data))
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return err
 	}
 
 	if resp.StatusCode != 200 {
-		log.Fatalf("Register error, status code: %d\n", resp.StatusCode)
+		log.Errorf("Register error, status code: %d\n", resp.StatusCode)
+		return errors.New(fmt.Sprintf("Register error, status code: %d\n", resp.StatusCode))
 	}
-
+	return nil
 }
 
 func (m *Minion) Deregister(port int) {

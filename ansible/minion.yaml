@@ -1,0 +1,20 @@
+# For Ubuntu 16.04
+---
+#- hosts: summon
+#- hosts: cdh
+#- hosts: tai
+#- hosts: etcd
+#- hosts: hangli_k8s
+- hosts: bsi
+  gather_facts: False
+  
+  pre_tasks:
+    - name: DEBUG
+      debug:
+        msg: "{{ansible_user}}"
+
+    #- name: Install Python
+    #  raw: test -e /usr/bin/python || (apt update -y && apt install -y python-minimal)
+
+  roles:
+    - minion

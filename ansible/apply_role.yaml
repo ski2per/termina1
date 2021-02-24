@@ -1,0 +1,45 @@
+---
+#- hosts: ceph
+#- hosts: cdh
+#- hosts: etcd
+#- hosts: bsi
+#- hosts: 172.16.2.10
+#- hosts: hangli_k8s
+- hosts: summon
+#- hosts: devops
+  roles:
+    #- ceph
+    #- settings
+    - ldap-auth
+    #- {role: settings, tags: ["hostname"]}
+    #- filebeat
+    #- nginx
+    #- docker
+    #- cdh-basic
+    #- netswatch
+    #- netswatchgo
+    #- {role: docker, tags: 'log'}
+    #- zabbix-agent
+    #- k8s-bin
+    #- {role: k8s-ubuntu, tags: 'shit'}
+    #- autofs
+    #- glusterfs
+
+
+
+#- hosts: testbed
+#  tasks:
+#    - name: Stop running containers
+#      command: "docker stop $(docker ps -q)"
+
+
+#- hosts: testbed
+#  tasks:
+#    - name: upload docker-compose
+#      copy:
+#        src: /usr/bin/docker-compose
+#        dest: /usr/bin/docker-compose
+#        owner: root
+#        group: root
+#        mode: 0755
+

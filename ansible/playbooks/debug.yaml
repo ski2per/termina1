@@ -1,0 +1,12 @@
+---
+#- hosts: 172.16.10.10
+- hosts: hangli 
+  #gather_facts: yes
+  remote_user: root
+  tasks:
+  - name: DEBUG0
+    debug:
+      msg: "{{ansible_machine}} | {{ansible_os_family}} | {{ansible_distribution}} | {{ansible_distribution_version}} | {{ansible_distribution_release}}"
+  - name: DEBUG1
+    debug:
+      msg: "{{ ansible_facts['distribution'] | lower }}"

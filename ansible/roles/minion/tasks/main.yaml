@@ -1,0 +1,18 @@
+---
+- name: DEBUG
+  debug:
+    msg: "{{ ansible_user }}"
+
+- name: Assemble! Minions
+  authorized_key:
+    user: root
+    state: present
+    key: "{{ lookup('file', lookup('env', 'HOME')+'/.ssh/id_rsa.pub') }}"
+  become: yes
+
+- name: Bye! Minions
+  authorized_key:
+    user: root
+    state: absent
+    key: "{{ lookup('file', lookup('env', 'HOME')+'/.ssh/id_rsa.pub') }}"
+  tags: [ never ]

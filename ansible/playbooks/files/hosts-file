@@ -1,0 +1,23 @@
+127.0.0.1   localhost
+
+172.16.101.30   zookeeper0
+172.16.101.30   kafka0
+172.16.101.30   peer0.org1.example.com
+172.16.101.30   peer1.org1.example.com
+
+172.16.101.11   zookeeper1
+172.16.101.11   kafka1
+172.16.101.11   peer0.org2.example.com
+172.16.101.11   peer1.org2.example.com
+
+172.16.101.12   zookeeper2
+172.16.101.12   kafka2
+172.16.101.12   peer0.org3.example.com
+172.16.101.12   peer1.org3.example.com
+
+172.16.101.13   kafka3
+172.16.101.13   peer0.org4.example.com
+172.16.101.13   peer1.org4.example.com
+
+172.16.101.41   orderer.example.com
+

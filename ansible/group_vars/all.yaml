@@ -1,0 +1,2 @@
+ansible_user: root
+dns_server: 114.114.114.114

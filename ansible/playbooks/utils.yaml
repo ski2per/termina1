@@ -1,0 +1,72 @@
+---
+- hosts: k8s
+  remote_user: root
+  tasks:
+  #- name: copy jenkins.repo
+  #  copy:
+  #    src: /root/ansible-playbook/install-jenkins-centos7/jenkins.repo
+  #    dest: /etc/yum.repos.d/jenkins.repo
+  #
+  - name: Install Basic Packages
+    apt:
+      name: "{{ packages }}"
+      install_recommends: no
+      state: present
+      update_cache: yes
+    vars:
+      packages:
+      #- lrzsz
+      #- iputils-ping
+      #- telnet
+      #- net-tools
+      #- sysstat
+      #- vim
+      - ntp
+    tags: basic
+
+  - name: Configure Hostname
+    hostname:
+      name: "{{ host_name }}"
+    when: host_name != ""
+    tags: ['hostname']
+  
+  - name: Copy motd
+    copy:
+      src: files/motd
+      dest: /etc/motd
+      owner: root
+      group: root
+      mode: 0644
+      backup: yes 
+    tags: ['banner']
+
+  - name: Cancel crontab
+    cron:
+      name: "/deploy/check_compose_yaml.sh /deploy/filebeat/filebeat-compose.yml"
+      state: absent
+    tags: ['cancel_cron']
+
+  - name: No history
+    shell: "cat /dev/null > ~/.bash_history && history"
+    args:
+      executable: /bin/bash
+    tags: [nohistory]
+
+  - name: Uninstall Zabbix Agent
+    apt:
+      name: zabbix-agent
+      state: absent
+      update_cache: yes 
+    when: ansible_facts['distribution'] == "Ubuntu"
+    tags: [remove_zabbix]
+
+  - name: Login private registry
+    docker_login:
+      registry: http://172.16.101.214:5000
+      username: user
+      password: P@ssw0rd
+    tags: ["login"]
+
+  - name: fabric clean up
+    script: files/fabric-cleanup.sh
+    tags: ["clean_fabric"]

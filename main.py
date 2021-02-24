@@ -2,7 +2,7 @@ import os.path
 import tornado.web
 import tornado.ioloop
 from gru.conf import conf
-from gru.handlers import IndexHandler, TermHandler, WSHandler, UploadHandler, DownloadHandler, PortHandler, RegisterHandler, DeregisterHandler
+from gru.handlers import IndexHandler, TermHandler, WSHandler, UploadHandler, DownloadHandler, PortHandler, RegisterHandler, DeregisterHandler, HostsGeneratorHandler
 from gru.utils import get_ssl_context
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,6 +20,7 @@ class Term1nal(tornado.web.Application):
             (r"/port", PortHandler),
             (r"/register", RegisterHandler),
             (r"/deregister/([^/]+)", DeregisterHandler),
+            (r"/genhosts", HostsGeneratorHandler),
         ]
 
         settings = dict(

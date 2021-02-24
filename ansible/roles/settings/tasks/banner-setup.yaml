@@ -1,0 +1,27 @@
+## Modify SSHD configuration to enable banner(motd)
+#- name: Configure SSHD
+#  replace:
+#    path: /etc/ssh/sshd_config
+#    regexp: '.*Banner.+'
+#    #replace: 'Banner /etc/motd'
+#    replace: ''
+#    backup: yes 
+#  when: ansible_distribution == 'CentOS'
+#  tags: never
+#
+#- name: Restart SSHD
+#  systemd:
+#    name: sshd
+#    state: restarted
+#  when: ansible_distribution == 'CentOS'
+#  tags: never
+
+- name: Copy motd
+  copy:
+    src: motd
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: 0644
+    backup: yes
+  tags: ['banner']

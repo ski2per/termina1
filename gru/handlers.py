@@ -142,7 +142,7 @@ class StreamUploadMixin(BaseMixin):
         else:
             return None
 
-    def _partition_chunk(self, chunk: bytes)->(bytes, bytes):
+    def _partition_chunk(self, chunk: bytes) -> (bytes, bytes):
         # A chunk has the format below:
         # b'\r\nContent-Disposition: form-data; name="upload"; filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n\r\nworld\r\n\r\n'
         # after partition, this will return:
@@ -150,7 +150,6 @@ class StreamUploadMixin(BaseMixin):
         # 'raw': b'hello\r\n\r\nworld\r\n\r\n'
         form_data_info, _, raw = chunk.partition(b"\r\n\r\n")
         return form_data_info, raw
-
 
     def _write_chunk(self, chunk: bytes) -> None:
         trimmed_chunk = self._trim_trailing_carriage_return(chunk)
@@ -162,14 +161,14 @@ class StreamUploadMixin(BaseMixin):
         m = ptn.search(data)
         if m:
             print(m.group(1).decode())
-            name =  m.group(1).decode()
+            name = m.group(1).decode()
         else:
             name = "untitled"
         # Replace spaces with underscore
         return re.sub('\s+', '_', name)
 
     @staticmethod
-    def _trim_trailing_carriage_return(chunk :bytes) -> bytes:
+    def _trim_trailing_carriage_return(chunk: bytes) -> bytes:
         """
         Filter out trailing carriage return(\r\n),
         Not to use rstrip(), to make sure b'hello\n\r\n' won't become b'hello'
@@ -231,40 +230,40 @@ class StreamUploadMixin(BaseMixin):
                     self.ssh_transport_client.close()
         self.stream_idx += 1
 
-            # ====================================
-            # OLD CODE
-            # ====================================
-            # # If chunk length is 0, which means the data received is the beginning of multipart/form-data
-            # if chunk_length == 0:
-            #     pass
-            # # Chunk length is 4, means the data received is end of multipart/form-data
-            # elif chunk_length == 4:
-            #     # End, close file handler(or similar object)
-            #     self.ssh_transport_client.close()
-            # else:
-            #     need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'),
-            #                               re.DOTALL | re.MULTILINE)
-            #     if need2partition:
-            #         header, _, part = chunk.partition('\r\n\r\n'.encode('ISO-8859-1'))
-            #         if part:
-            #             header_text = header.decode('ISO-8859-1').strip()
-            #             if 'minion' in header_text:
-            #                 pass
-            #                 # self.minion_id = part.decode('ISO-8859-1').strip()
-            #
-            #             if 'upload' in header_text:
-            #                 m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
-            #                 if m:
-            #                     self.filename = m.group('filename')
-            #                 else:
-            #                     self.filename = 'untitled'
-            #
-            #                 self.filename = re.sub('\s+', '_', self.filename)
-            #                 # A trick to create a remote file handler
-            #                 self.exec_remote_cmd(f'cat > /tmp/{self.filename}')
-            #                 self._write_chunk(part)
-            #     else:
-            #         self._write_chunk(chunk)
+        # ====================================
+        # OLD CODE
+        # ====================================
+        # # If chunk length is 0, which means the data received is the beginning of multipart/form-data
+        # if chunk_length == 0:
+        #     pass
+        # # Chunk length is 4, means the data received is end of multipart/form-data
+        # elif chunk_length == 4:
+        #     # End, close file handler(or similar object)
+        #     self.ssh_transport_client.close()
+        # else:
+        #     need2partition = re.match('.*Content-Disposition:\sform-data;.*', chunk.decode('ISO-8859-1'),
+        #                               re.DOTALL | re.MULTILINE)
+        #     if need2partition:
+        #         header, _, part = chunk.partition('\r\n\r\n'.encode('ISO-8859-1'))
+        #         if part:
+        #             header_text = header.decode('ISO-8859-1').strip()
+        #             if 'minion' in header_text:
+        #                 pass
+        #                 # self.minion_id = part.decode('ISO-8859-1').strip()
+        #
+        #             if 'upload' in header_text:
+        #                 m = re.match('.*filename="(?P<filename>.*)".*', header_text, re.MULTILINE | re.DOTALL)
+        #                 if m:
+        #                     self.filename = m.group('filename')
+        #                 else:
+        #                     self.filename = 'untitled'
+        #
+        #                 self.filename = re.sub('\s+', '_', self.filename)
+        #                 # A trick to create a remote file handler
+        #                 self.exec_remote_cmd(f'cat > /tmp/{self.filename}')
+        #                 self._write_chunk(part)
+        #     else:
+        #         self._write_chunk(chunk)
 
 
 class IndexHandler(BaseMixin, tornado.web.RequestHandler):
@@ -498,3 +497,12 @@ class DeregisterHandler(tornado.web.RequestHandler):
     async def delete(self, port):
         await run_async_func(delete_cache, str(port))
         self.write("")
+
+
+class HostsGeneratorHandler(tornado.web.RequestHandler):
+    async def get(self):
+        keys = get_redis_keys()
+        for key in keys:
+            print(get_cache(key))
+        hosts = [get_cache(key) for key in get_redis_keys()]
+        self.write(json.dumps(hosts))

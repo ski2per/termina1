@@ -1,0 +1,4 @@
+---
+# Variables for this role
+
+USE_ALI_REPO : True

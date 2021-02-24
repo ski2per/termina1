@@ -6,7 +6,7 @@ COPY . /
 RUN sed -i s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g /etc/apk/repositories \
     # Install SSHD deps
     && apk update \
-    && apk add bash git openssh rsync augeas shadow rssh python3 python3-dev py3-pip \
+    && apk add bash git openssh rsync augeas shadow rssh python3 python3-dev py3-pip sshpass vim \
     # Install Python deps
     && apk add --no-cache --virtual .build-deps \
         gcc \
@@ -18,6 +18,8 @@ RUN sed -i s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g /etc/apk/repositories \
         openssl-dev \
     && pip3 install -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com -r requirements.txt \
     && apk del .build-deps \
+    && pip3 install -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com ansible \
+    && ln -sf /ansible /etc/ansible \
     && deluser $(getent passwd 33 | cut -d: -f1) \
     && delgroup $(getent group 33 | cut -d: -f1) 2>/dev/null || true \
     && mkdir -p ~root/.ssh /etc/authorized_keys && chmod 700 ~root/.ssh/ \
@@ -26,8 +28,8 @@ RUN sed -i s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g /etc/apk/repositories \
     && cp -a /etc/ssh /etc/ssh.cache \
     && rm -rf /var/cache/apk/*
 
-EXPOSE 22
-#EXPOSE 8000 4433
+EXPOSE 22 8000 4433
+#EXPOSE 4433
 #ENTRYPOINT ["python", "main.py", "--address=0.0.0.0"]
 
 COPY entry.sh /entry.sh

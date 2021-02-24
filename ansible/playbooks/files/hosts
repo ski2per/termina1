@@ -1,0 +1,14 @@
+127.0.0.1       localhost
+
+# The following lines are desirable for IPv6 capable hosts
+::1     localhost ip6-localhost ip6-loopback
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+172.16.6.200    cdh-node0
+172.16.6.201    cdh-node1
+172.16.6.202    cdh-node2
+172.16.6.203    cdh-node3
+172.16.6.204    cdh-node4
+172.16.6.205    cdh-node5
+172.16.6.206    cdh-node6

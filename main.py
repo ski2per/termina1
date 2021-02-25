@@ -49,7 +49,7 @@ def main():
     if ssl_ctx:
         server_settings.update(ssl_options=ssl_ctx)
         app.listen(conf.ssl_port, conf.host, **server_settings)
-        
+
     loop.start()
 
 

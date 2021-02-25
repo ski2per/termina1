@@ -1,4 +1,4 @@
-#.PHONY: test e2e-test cover gofmt gofmt-fix header-check clean tar.gz docker-push release docker-push-all flannel-git
+#.PHONY: gru clean
 
 # Registry used for publishing images
 REGISTRY?=${REGISTRY_PREFIX}gru
@@ -15,7 +15,6 @@ ifeq ($(findstring dirty,$(TAG)), dirty)
 endif
 
 
-
 clean:
 	@echo "clean"
 
@@ -29,3 +28,5 @@ image:
 push: image
 	docker push $(REGISTRY):$(TAG)
 
+minion:
+	@echo "compile minion(tbd)"

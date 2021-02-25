@@ -55,4 +55,8 @@ MINION_PUBLIC_IP | Minion's public IP if any |
 ![screenshot-1](pics/screenshot-1.png)
 ![screenshot-2](pics/screenshot-2.png)
 
+# Issues
+* Uploading hangs whole server(Gru)
+* Handle Redis registration when connection error
+
 

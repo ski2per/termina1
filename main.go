@@ -13,6 +13,8 @@ import (
 )
 
 var m = minion.Minion{}
+var remote = minion.Endpoint{}
+var local = minion.Endpoint{}
 
 func init() {
 	// Init configuration from evnironmental variables
@@ -28,6 +30,17 @@ func init() {
 			log.Errorln(err)
 		}
 		m.MinionID = hostname
+	}
+	remote = minion.Endpoint{
+		Username: m.GruUsername,
+		Password: m.GruPassword,
+		Host:     m.GruHost,
+		Port:     m.GruSSHPort,
+	}
+
+	local = minion.Endpoint{
+		Host: m.MinionHost,
+		Port: m.MinionSSHPort,
 	}
 
 	// Init Logrus, default to INFO
@@ -46,62 +59,44 @@ func main() {
 	fmt.Printf("\nMinion: %s\n\n", minion.Version)
 
 	log.Debugf("%+v\n", m)
-	log.Info("Trying to get random reversed port from Gru")
-	randomPort, err := m.GetRandomPort()
-	for err != nil {
-		time.Sleep(2 * time.Second)
-		log.Error("Error while getting random port from Gru, retrying...")
-		randomPort, err = m.GetRandomPort()
-	} // Loop for getting random port
-
-	log.Infof("Got random reversed port: %d\n", randomPort)
-
-	internalIP := minion.GetLocalAddr()
-	meta := minion.Meta{
-		Name:       m.MinionID,
-		Port:       randomPort,
-		InternalIP: internalIP.String(),
-	}
-	// Debug for registration error
-	// time.Sleep(20 * time.Second)
-
-	err = m.Register(meta)
-	for err != nil {
-		err = m.Register(meta)
-		time.Sleep(2 * time.Second)
-	} // Loop for registration
-
-	remote := minion.Endpoint{
-		Username: m.GruUsername,
-		Password: m.GruPassword,
-		Host:     m.GruHost,
-		Port:     m.GruSSHPort,
-	}
-
-	local := minion.Endpoint{
-		Host: m.MinionHost,
-		Port: m.MinionSSHPort,
-	}
-
+	randomPort := -1
 	// Use os.Singal channel to some cleanups
 	ch := make(chan os.Signal)
+
 	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		<-ch
 		log.Info("Got OS signal, Deregister...")
-		m.Deregister(randomPort)
+
+		if randomPort > 0 {
+			m.Deregister(randomPort)
+		}
 		os.Exit(1)
 	}()
 
 	for {
-		// minion.ConnectToGru(local, remote, cfg.GruReversePort)
-		err := minion.ConnectToGru(local, remote, randomPort)
+		log.Info("Trying to get random reversed port from Gru")
+		randomPort = m.GetRandomPort()
+		log.Infof("Got random reversed port: %d\n", randomPort)
+
+		internalIP := minion.GetLocalAddr()
+		meta := minion.Meta{
+			Name:       m.MinionID,
+			Port:       randomPort,
+			InternalIP: internalIP.String(),
+		}
+
+		err := m.Register(meta)
 		if err != nil {
-			// log.Errorf("Lost connection to Gru, try to reconnect(port:%d)", randomPort)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		err = minion.ConnectToGru(local, remote, randomPort)
+		if err != nil {
 			log.Error("Lost connection to Gru, try to reconnect...")
-			// m.Deregister(randomPort)
-			// time.Sleep(2 * time.Second)
-			break
+			time.Sleep(2 * time.Second)
+			continue
 		}
 	}
 }

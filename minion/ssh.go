@@ -69,9 +69,12 @@ func ConnectToGru(minion Endpoint, gru Endpoint, forwardPort int) error {
 			log.Error(err)
 			return err
 		}
+
 		// Debug, optimize later
 		go func() {
 			handleForwarding(reverse, local)
+			reverse.Close()
+			local.Close()
 		}()
 	}
 }
@@ -83,7 +86,7 @@ func handleForwarding(local net.Conn, remote net.Conn) {
 	// remote -> local forwarding
 	go func() {
 		if _, err := io.Copy(local, remote); err != nil {
-			log.Errorf("Error while copying remote->local: %s", err)
+			log.Infof("Error while copying remote->local: %s", err)
 		}
 		chDone <- true
 	}()
@@ -91,7 +94,7 @@ func handleForwarding(local net.Conn, remote net.Conn) {
 	// local -> remote forwarding
 	go func() {
 		if _, err := io.Copy(remote, local); err != nil {
-			log.Errorf("Error while copying local->remote: %s", err)
+			log.Infof("Error while copying local->remote: %s", err)
 		}
 		chDone <- true
 	}()

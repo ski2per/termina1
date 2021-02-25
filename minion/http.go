@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -35,29 +36,27 @@ type Meta struct {
 	PublicIP   string `json:"publicip"`
 }
 
-func (m *Minion) GetRandomPort() (int, error) {
+func (m *Minion) GetRandomPort() int {
 	url := fmt.Sprintf("%s/port", m.GruAPIEndpoint)
-	response, err := http.Get(url)
-	if err != nil {
-		// fmt.Println(err)
-		// log.Fatalln(err)
+
+	for {
+		response, err := http.Get(url)
+		if err == nil {
+			responseData, err := ioutil.ReadAll(response.Body)
+			if err == nil {
+				random := randomPort{}
+				json.Unmarshal(responseData, &random)
+				return random.Port
+			}
+			log.Error("Error reading response data, retrying...")
+			log.Error(responseData)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		log.Error("Error getting random port, retrying...")
 		log.Error(err)
-		// os.Exit(1)
-		return -1, err
+		time.Sleep(2 * time.Second)
 	}
-
-	responseData, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Error("error get response data, retry please")
-		// log.Fatal(responseData)
-		log.Error(responseData)
-		return -1, err
-		// os.Exit(1)
-	}
-
-	random := randomPort{}
-	json.Unmarshal(responseData, &random)
-	return random.Port, err
 }
 
 func (m *Minion) Register(meta Meta) error {

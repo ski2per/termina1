@@ -1,4 +1,4 @@
-#.PHONY: gru clean
+.PHONY: gru clean minion
 
 # Registry used for publishing images
 REGISTRY?=${REGISTRY_PREFIX}gru
@@ -16,17 +16,18 @@ endif
 
 
 clean:
-	@echo "clean"
+	rm -f dist/*
 
 ## Create a docker image on disk for a specific arch and tag
-image:
+gru:
 	@cp $(VERSION_FILE) "$(VERSION_FILE).bak"
 	@sed -i "s/VERSION/$(TAG)/" $(VERSION_FILE)
 	docker build --no-cache -f Dockerfile -t $(REGISTRY):$(TAG) .
 	@mv "$(VERSION_FILE).bak" $(VERSION_FILE)
 
-push: image
+push: gru 
 	docker push $(REGISTRY):$(TAG)
 
-minion:
-	@echo "compile minion(tbd)"
+minion: $(shell find . -type f  -name '*.go')
+	go build -o dist/minion \
+	  -ldflags '-s -w -X github.com/ski2per/gru/minion.Version=$(TAG) -extldflags "-static"'

@@ -277,7 +277,6 @@ jQuery(function($){
     event.preventDefault();
     // Clean msg
     setMsg("");
-    console.log(fields.slice(2, -1));
     let result = validateFormData(minionLoginFormID, ["username", "password"]);
     if (result.error) {
       setMsg(result.error);

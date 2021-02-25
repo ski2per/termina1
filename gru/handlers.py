@@ -333,8 +333,8 @@ class TermHandler(BaseMixin, tornado.web.RequestHandler):
         if minions and len(minions) >= conf.max_conn:
             raise tornado.web.HTTPError(406, 'Too many connections')
 
+        args = self.get_args()
         try:
-            args = self.get_args()
             self.ssh_term_client = self.create_ssh_client(args)
             future = self.executor.submit(self.create_minion, args)
             minion = yield future
@@ -343,6 +343,11 @@ class TermHandler(BaseMixin, tornado.web.RequestHandler):
             raise tornado.web.HTTPError(400, str(err))
         except (ValueError, paramiko.SSHException,
                 paramiko.ssh_exception.AuthenticationException) as err:
+            LOG.error(err)
+            # Delete dangling cache
+            if str(err).lower().startswith("unable to"):
+                delete_cache(str(args[1]))
+
             self.result.update(status=str(err))
         else:
             if not minions:

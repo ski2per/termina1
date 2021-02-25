@@ -12,7 +12,7 @@ Minion: a ssh client to establish reversed SSH tunnel to Gru
 # Environment
 ## GRU
 Name | Description | Default
---- | --- | --- | --- 
+ --- | --- | --- 
 SSH_USERS | SSH users to be added(e.g.: SSH_USERS=www:48:48,admin:1000:1000:/bin/bash)| 
 GRU_MODE | Gru's mode, term or gru | term
 GRU_HOST | Gru's listening host | 0.0.0.0
@@ -27,7 +27,7 @@ GRU_MAX_CONN | Gru's max connections | 20
 
 ## Minion
 Name | Description | Default
---- | --- | --- | --- 
+--- | --- | --- 
 GRU_HOST | Gru's SSH Host | localhost
 GRU_SSH_PORT | Gru's SSH port | envDefault:"22"`
 GRU_USERNAME | Gru's SSH username | gru

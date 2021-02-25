@@ -3,7 +3,7 @@ import tornado.web
 import tornado.ioloop
 from gru.conf import conf
 from gru.handlers import IndexHandler, TermHandler, WSHandler, UploadHandler, DownloadHandler, PortHandler, RegisterHandler, DeregisterHandler, HostsGeneratorHandler
-from gru.utils import get_ssl_context
+from gru.utils import get_ssl_context, delete_all_caches
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 conf.base_dir = BASE_DIR
@@ -49,6 +49,9 @@ def main():
     if ssl_ctx:
         server_settings.update(ssl_options=ssl_ctx)
         app.listen(conf.ssl_port, conf.host, **server_settings)
+    # Clean all Redis caches
+    delete_all_caches()
+
     loop.start()
 
 

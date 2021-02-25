@@ -89,6 +89,7 @@ async def run_async_func(func, *args):
         result = await loop.run_in_executor(pool, func, *args)
         return result
 
+
 @contextmanager
 def conn2redis(*args, **kwargs):
     try:
@@ -98,6 +99,7 @@ def conn2redis(*args, **kwargs):
     except redis.RedisError as err:
         LOG.error(f"redis error: {err}")
         LOG.error(f"{kwargs}")
+
 
 def get_redis_keys(filter=""):
     with conn2redis(host=conf.redis_host, port=conf.redis_port, db=conf.redis_db) as r:
@@ -119,6 +121,7 @@ def get_cache(cache_key: str):
         #     LOG.error(f"GET CACHE KEY({cache_key}) error")
         #     return None
 
+
 def set_cache(cache_key: str, data):
     with conn2redis(host=conf.redis_host, port=conf.redis_port, db=conf.redis_db) as r:
         result = r.set(cache_key, json.dumps(data))
@@ -127,7 +130,12 @@ def set_cache(cache_key: str, data):
         else:
             LOG.error(f"SET CACHE KEY({cache_key}) error")
 
+
 def delete_cache(cache_key: str):
     with conn2redis(host=conf.redis_host, port=conf.redis_port, db=conf.redis_db) as r:
         r.delete(cache_key)
 
+
+def delete_all_caches():
+    with conn2redis(host=conf.redis_host, port=conf.redis_port, db=conf.redis_db) as r:
+        r.flushall()

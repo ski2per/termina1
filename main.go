@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/caarlos0/env"
@@ -81,19 +83,25 @@ func main() {
 		Port: m.MinionSSHPort,
 	}
 
-	// _, cancel := context.WithCancel(context.Background())
-
-	// FIND NO WAY to exit blocked goroutine
-	// wg := sync.WaitGroup{}
-	// wg.Add(1)
+	// Use os.Singal channel to some cleanups
+	ch := make(chan os.Signal)
+	signal.Notify(ch, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-ch
+		log.Info("Got OS signal, Deregister...")
+		m.Deregister(randomPort)
+		os.Exit(1)
+	}()
 
 	for {
 		// minion.ConnectToGru(local, remote, cfg.GruReversePort)
 		err := minion.ConnectToGru(local, remote, randomPort)
 		if err != nil {
-			log.Errorf("Lost connection to Gru, try to reconnect(port:%d)", randomPort)
+			// log.Errorf("Lost connection to Gru, try to reconnect(port:%d)", randomPort)
+			log.Error("Lost connection to Gru, try to reconnect...")
 			// m.Deregister(randomPort)
-			time.Sleep(2 * time.Second)
+			// time.Sleep(2 * time.Second)
+			break
 		}
 	}
 }

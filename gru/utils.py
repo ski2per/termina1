@@ -134,8 +134,3 @@ def set_cache(cache_key: str, data):
 def delete_cache(cache_key: str):
     with conn2redis(host=conf.redis_host, port=conf.redis_port, db=conf.redis_db) as r:
         r.delete(cache_key)
-
-
-def delete_all_caches():
-    with conn2redis(host=conf.redis_host, port=conf.redis_port, db=conf.redis_db) as r:
-        r.flushall()

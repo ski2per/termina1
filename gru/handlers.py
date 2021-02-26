@@ -4,6 +4,7 @@ import socket
 import struct
 import os.path
 import weakref
+import asyncio
 import paramiko
 import tornado.web
 from json.decoder import JSONDecodeError
@@ -328,8 +329,7 @@ class TermHandler(BaseMixin, tornado.web.RequestHandler):
             clients = [get_cache(k) for k in get_redis_keys()]
         self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
 
-    @tornado.gen.coroutine
-    def post(self):
+    async def post(self):
         ip, port = self.get_client_endpoint()
         minions = GRU.get(ip, {})
         if minions and len(minions) >= conf.max_conn:
@@ -338,8 +338,7 @@ class TermHandler(BaseMixin, tornado.web.RequestHandler):
         args = self.get_args()
         try:
             self.ssh_term_client = self.create_ssh_client(args)
-            future = self.executor.submit(self.create_minion, args)
-            minion = yield future
+            minion = await run_async_func(self.create_minion, args)
         except InvalidValueError as err:
             # Catch error in self.get_args()
             raise tornado.web.HTTPError(400, str(err))

@@ -184,7 +184,7 @@ class StreamUploadMixin(BaseMixin):
             return chunk[:-2]
         return chunk
 
-    def data_received(self, data):
+    async def data_received(self, data):
         # A simple multipart/form-data
         # b'------WebKitFormBoundarysiqXYmhALsFpsMuh\r\nContent-Disposition: form-data; name="upload"; filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n\r\nworld\r\n\r\n------WebKitFormBoundarysiqXYmhALsFpsMuh--\r\n'
         """
@@ -211,24 +211,23 @@ class StreamUploadMixin(BaseMixin):
         if chunks_len == 3:
             form_data_info, raw = self._partition_chunk(chunks[1])
             self.filename = self._extract_filename(form_data_info)
-            # print(self._trim_trailing_carriage_return(raw))
-            self.exec_remote_cmd(f'cat > /tmp/{self.filename}')
-            self._write_chunk(raw)
-            self.ssh_transport_client.close()
+            await run_async_func(self.exec_remote_cmd, f'cat > /tmp/{self.filename}')
+            await run_async_func(self._write_chunk, raw)
+            await run_async_func(self.ssh_transport_client.close)
         else:
             if self.stream_idx == 0:
                 form_data_info, raw = self._partition_chunk(chunks[1])
                 self.filename = self._extract_filename(form_data_info)
-                self.exec_remote_cmd(f'cat > /tmp/{self.filename}')
-                self._write_chunk(raw)
+                await run_async_func(self.exec_remote_cmd, f'cat > /tmp/{self.filename}')
+                await run_async_func(self._write_chunk, raw)
             else:
                 # Form data in the middle data stream
                 if chunks_len == 1:
-                    self._write_chunk(chunks[0])
+                    await run_async_func(self._write_chunk, chunks[0])
                 else:
                     # 'chunks_len' == 2, the LAST stream
-                    self._write_chunk(chunks[0])
-                    self.ssh_transport_client.close()
+                    await run_async_func(self._write_chunk, chunks[0])
+                    await run_async_func(self.ssh_transport_client.close)
         self.stream_idx += 1
 
         # ====================================

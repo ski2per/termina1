@@ -29,5 +29,5 @@ push: gru
 	docker push $(REGISTRY):$(TAG)
 
 minion: $(shell find . -type f  -name '*.go')
-	go build -o dist/minion \
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o dist/minion \
 	  -ldflags '-s -w -X github.com/ski2per/gru/minion.Version=$(TAG) -extldflags "-static"'

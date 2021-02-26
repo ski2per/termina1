@@ -99,6 +99,9 @@ def conn2redis(*args, **kwargs):
     except redis.RedisError as err:
         LOG.error(f"redis error: {err}")
         LOG.error(f"{kwargs}")
+        raise err
+    except ConnectionRefusedError as err:
+        LOG.error(err)
 
 
 def get_redis_keys(filter=""):

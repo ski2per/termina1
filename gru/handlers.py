@@ -4,7 +4,7 @@ import socket
 import struct
 import os.path
 import weakref
-import asyncio
+import redis
 import paramiko
 import tornado.web
 from json.decoder import JSONDecodeError
@@ -325,8 +325,13 @@ class TermHandler(BaseMixin, tornado.web.RequestHandler):
         clients = []
         # Get all Minions from Redis when GRU_MODE=gru
         if conf.mode == "gru":
-            clients = [get_cache(k) for k in get_redis_keys()]
-        self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
+            try:
+                clients = [get_cache(k) for k in get_redis_keys()]
+            except (ConnectionRefusedError, redis.exceptions.ConnectionError) as err:
+                LOG.error(err)
+                self.write("Oops~")
+            else:
+                self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
 
     async def post(self):
         ip, port = self.get_client_endpoint()
@@ -506,8 +511,5 @@ class DeregisterHandler(tornado.web.RequestHandler):
 
 class HostsGeneratorHandler(tornado.web.RequestHandler):
     async def get(self):
-        keys = get_redis_keys()
-        for key in keys:
-            print(get_cache(key))
         hosts = [get_cache(key) for key in get_redis_keys()]
         self.write(json.dumps(hosts))

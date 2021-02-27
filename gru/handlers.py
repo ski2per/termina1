@@ -266,7 +266,6 @@ class StreamUploadMixin(BaseMixin):
         #         self._write_chunk(chunk)
 
 
-
 class IndexHandler(BaseMixin, tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=cpu_count() * 6)
 

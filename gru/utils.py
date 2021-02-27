@@ -34,7 +34,7 @@ def get_logging_level():
         "error": logging.ERROR,
     }
 
-    lvl = os.getenv("TERM_LOG_LEVEL", "info").strip().lower()
+    lvl = os.getenv("LOG_LEVEL", "info").strip().lower()
     return log_dict[lvl]
 
 

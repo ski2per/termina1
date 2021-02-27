@@ -327,6 +327,8 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
 
     async def post(self):
+        LOG.debug('------------------------')
+        LOG.debug(GRU)
         ip, port = self.get_client_endpoint()
         minions = GRU.get(ip, {})
         if minions and len(minions) >= conf.max_conn:

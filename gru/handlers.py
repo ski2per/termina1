@@ -266,18 +266,12 @@ class StreamUploadMixin(BaseMixin):
         #         self._write_chunk(chunk)
 
 
+
 class IndexHandler(BaseMixin, tornado.web.RequestHandler):
-
-    def get(self):
-        clients = [get_cache(k) for k in get_redis_keys()]
-        self.render('term.html', clients=clients)
-
-
-class TermHandler(BaseMixin, tornado.web.RequestHandler):
     executor = ThreadPoolExecutor(max_workers=cpu_count() * 6)
 
     def initialize(self, loop):
-        super(TermHandler, self).initialize(loop=loop)
+        super(IndexHandler, self).initialize(loop=loop)
         # self.ssh_client = self.get_ssh_client()
         self.ssh_term_client = None
         self.debug = self.settings.get('debug', False)

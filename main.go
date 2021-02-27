@@ -13,8 +13,6 @@ import (
 )
 
 var m = minion.Minion{}
-var remote = minion.Endpoint{}
-var local = minion.Endpoint{}
 
 func init() {
 	// Init configuration from evnironmental variables
@@ -30,17 +28,6 @@ func init() {
 			log.Errorln(err)
 		}
 		m.MinionID = hostname
-	}
-	remote = minion.Endpoint{
-		Username: m.GruUsername,
-		Password: m.GruPassword,
-		Host:     m.GruHost,
-		Port:     m.GruSSHPort,
-	}
-
-	local = minion.Endpoint{
-		Host: m.MinionHost,
-		Port: m.MinionSSHPort,
 	}
 
 	// Init Logrus, default to INFO
@@ -92,7 +79,7 @@ func main() {
 			continue
 		}
 
-		err = minion.ConnectToGru(local, remote, randomPort)
+		err = minion.ConnectToGru(&m, randomPort)
 		if err != nil {
 			log.Error("Lost connection to Gru, try to reconnect...")
 			time.Sleep(2 * time.Second)

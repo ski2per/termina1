@@ -37,7 +37,7 @@
 
     <div class="row">
       <!-- mode can be set by environment GRU_MODE -->
-      {% if mode == "gru" %}
+      {% if mode == "gru" or mode == "all" %}
       <div class="col">
           <h2>Online client:</h2>
           <table class="ted-table">
@@ -76,6 +76,7 @@
         </div><!--Minions-->
         {% end %}
 
+      {% if mode == "term" or mode == "all" %}
       <div class="col">
         <div class="nes-container with-title">
           <p class="title">Web Terminal - VERSION</p>
@@ -107,6 +108,7 @@
           </form>
         </div>
       </div><!--General Web SSH-->
+      {% end %}
     </div>
     
 

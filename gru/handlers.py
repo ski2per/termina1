@@ -324,14 +324,14 @@ class TermHandler(BaseMixin, tornado.web.RequestHandler):
     def get(self):
         clients = []
         # Get all Minions from Redis when GRU_MODE=gru
-        if conf.mode == "gru":
+        if conf.mode != "term":
             try:
                 clients = [get_cache(k) for k in get_redis_keys()]
             except (ConnectionRefusedError, redis.exceptions.ConnectionError) as err:
                 LOG.error(err)
                 self.write("Oops~")
-            else:
-                self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
+                return
+        self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
 
     async def post(self):
         ip, port = self.get_client_endpoint()

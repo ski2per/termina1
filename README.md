@@ -51,12 +51,19 @@ MINION_PUBLIC_IP | Minion's public IP if any |
 * [NES.css](https://github.com/nostalgic-css/NES.css/)
 
 # Screenshots
-![screenshot-0](pics/screenshot-0.png)
-![screenshot-1](pics/screenshot-1.png)
-![screenshot-2](pics/screenshot-2.png)
+Web terminal mode
+
+![term mode](docs/term-mode.jpg)
+
+Gru mode
+
+![gru mode](docs/gru-mode.jpg)
+
+All mode
+
+![all mode](docs/all-mode.jpg)
 
 # Issues
-* Uploading hangs whole server(Gru)
-* Handle Redis registration when connection error
+* None(currently) 
 
 

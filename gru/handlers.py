@@ -504,7 +504,14 @@ class DeregisterHandler(tornado.web.RequestHandler):
         self.write("")
 
 
-class HostsGeneratorHandler(tornado.web.RequestHandler):
+class HostsHandler(tornado.web.RequestHandler):
     async def get(self):
         hosts = [get_cache(key) for key in get_redis_keys()]
         self.write(json.dumps(hosts))
+
+
+class NotFoundHandler(tornado.web.RequestHandler):
+    def prepare(self):
+        LOG.info("In NotFoundHandler")
+        # raise tornado.web.HTTPError(status_code=404, reason="Oops!")
+        self.render('40x.html')

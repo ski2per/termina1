@@ -14,14 +14,12 @@ from gru.conf import conf
 
 enable_pretty_logging()
 
-# GRU =  {
-#     '172.16.66.66': {
-#         '140580981443160': {
-#             'minion': <gru.minion.Minion object at 0x7fdb8f760a58>,
-#             'args': ('172.16.66.10', 22, 'root', 'P@ssw0rd')}
-#     }
+# MINIONS =  {
+#     '140580981443160': {
+#     'minion': <gru.minion.Minion object at 0x7fdb8f760a58>,
+#     'args': ('172.16.66.10', 22, 'root', 'P@ssw0rd')}
 # }
-GRU = {}
+MINIONS = {}
 
 
 def get_logging_level():

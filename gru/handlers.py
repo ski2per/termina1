@@ -15,7 +15,7 @@ from tornado.process import cpu_count
 from tornado.escape import json_decode
 
 from gru.conf import conf
-from gru.minion import Minion, recycle_minion, GRU
+from gru.minion import Minion, recycle_minion, MINIONS
 from gru.utils import LOG, run_async_func, find_free_port, get_cache, set_cache, delete_cache, get_redis_keys
 
 DELAY = 3
@@ -26,16 +26,22 @@ class InvalidValueError(Exception):
 
 
 class BaseMixin:
-    channel = None
-    args = None
-    ssh_transport_client = None
-    minion_id = None
-    filename = ''
-    stream_idx = 0
+    # channel = None
+    # args = None
+    # ssh_transport_client = None
+    # filename = ''
+    # stream_idx = 0
 
     def initialize(self, loop):
         self.context = self.request.connection.context
         self.loop = loop
+
+        self.channel = None
+        self.args = None
+        self.ssh_transport_client = None
+        self.filename = ''
+        self.stream_idx = 0
+
         # self.ssh_term_client = None
 
     def create_ssh_client(self, args) -> paramiko.SSHClient:
@@ -60,25 +66,12 @@ class BaseMixin:
         :param probe_cmd: Probe command to execute before 'cmd'
         :return: None
         """
-        client_ip = self.get_client_endpoint()[0]
-        gru = GRU.get(client_ip, {})
-        args = gru[self.minion_id]["args"]
-        print("exec_remote_cmd")
-        print(args)
+        minion_id = self.get_value('minion', arg_type='cookie')
+        LOG.debug(f'[exec_remote_cmd] Minion ID: {minion_id}')
+        minion = MINIONS.get(minion_id)
+        args = minion['args']
+        LOG.debug(f'[exec_remote_cmd] Minion args: {args}')
         self.ssh_transport_client = self.create_ssh_client(args)
-
-        # self.ssh_transport_client = paramiko.Transport(args[:2])
-
-        # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-        #     client = paramiko.SSHClient()
-        #     client.set_missing_host_key_policy(paramiko.client.MissingHostKeyPolicy)
-        #     sock.connect(args[:2])
-        #     # self.ssh_transport_client.connect()
-        #     username, password = args[-2:]
-        #     self.ssh_transport_client = paramiko.Transport(sock)
-        #     self.ssh_transport_client.connect(hostkey=None, username=username, password=password)
-        #     self.channel = self.ssh_transport_client.open_channel(kind='forwarded-tcpip')
-        #     self.channel.exec_command(cmd)
 
         # Use probe_cmd to detect file's existence
         if probe_cmd:
@@ -89,7 +82,7 @@ class BaseMixin:
                 raise tornado.web.HTTPError(404, "Not found")
 
         transport = self.ssh_transport_client.get_transport()
-        username, password = args[-2:]
+        # username, password = args[-2:]
         # self.ssh_transport_client.connect(hostkey=None, username=username, password=password)
         self.channel = transport.open_channel(kind='session')
         # self.channel = transport.open_channel(kind='forwarded-tcpip')
@@ -100,6 +93,8 @@ class BaseMixin:
 
         if arg_type == "query":
             value = self.get_query_argument(name)
+        elif arg_type == "cookie":
+            value = self.get_secure_cookie(name).decode()
         else:
             value = self.get_argument(name)
 
@@ -315,7 +310,7 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         return minion
 
     def get(self):
-        print(GRU)
+        print(MINIONS)
         clients = []
         # Get all Minions from Redis when GRU_MODE=gru
         if conf.mode != "term":
@@ -328,13 +323,6 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
 
     async def post(self):
-        LOG.debug('------------------------')
-        LOG.debug(GRU)
-        ip, port = self.get_client_endpoint()
-        minions = GRU.get(ip, {})
-        if minions and len(minions) >= conf.max_conn:
-            raise tornado.web.HTTPError(406, 'Too many connections')
-
         args = self.get_args()
         try:
             self.ssh_term_client = self.create_ssh_client(args)
@@ -351,10 +339,10 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
 
             self.result.update(status=str(err))
         else:
-            if not minions:
-                GRU[ip] = minions
-            minion.src_addr = (ip, port)
-            minions[minion.id] = {
+            # if not minions:
+            # GRU[ip] = minions
+            # minion.src_addr = (ip, port)
+            MINIONS[minion.id] = {
                 "minion": minion,
                 "args": args
             }
@@ -374,28 +362,28 @@ class WSHandler(BaseMixin, tornado.websocket.WebSocketHandler):
         self.src_addr = self.get_client_endpoint()
         LOG.info('Connected from {}:{}'.format(*self.src_addr))
 
-        minions = GRU.get(self.src_addr[0])
-        if not minions:
-            self.close(reason='Websocket authentication failed.')
-            return
-
         try:
             # Get id from query argument from
             minion_id = self.get_value('id')
             LOG.debug(f"############ minion id: {minion_id}")
 
-        except (tornado.web.MissingArgumentError, InvalidValueError) as err:
-            self.close(reason=str(err))
-        else:
-            minion = minions.get(minion_id)["minion"]
-            if minion:
-                minions[minion_id]["minion"] = None
+            minion = MINIONS.get(minion_id)
+            if not minion:
+                self.close(reason='Websocket failed.')
+                return
+
+            minion_obj = minion.get('minion', None)
+            if minion_obj:
+                # minions[minion_id]["minion"] = None
                 self.set_nodelay(True)
-                minion.set_handler(self)
-                self.minion_ref = weakref.ref(minion)
-                self.loop.add_handler(minion.fd, minion, IOLoop.READ)
+                minion_obj.set_handler(self)
+                self.minion_ref = weakref.ref(minion_obj)
+                self.loop.add_handler(minion_obj.fd, minion_obj, IOLoop.READ)
             else:
                 self.close(reason='Websocket authentication failed.')
+
+        except (tornado.web.MissingArgumentError, InvalidValueError) as err:
+            self.close(reason=str(err))
 
     def on_message(self, message):
         LOG.debug(f'{message} from {self.src_addr}')
@@ -432,12 +420,9 @@ class WSHandler(BaseMixin, tornado.websocket.WebSocketHandler):
 
 @tornado.web.stream_request_body
 class UploadHandler(StreamUploadMixin, BaseMixin, tornado.web.RequestHandler):
+
     def initialize(self, loop):
         super(UploadHandler, self).initialize(loop=loop)
-        self.minion_id = self.get_secure_cookie("minion").decode()
-        print("---------debug")
-        print(self.minion_id)
-        LOG.debug(f"Minion ID: {self.minion_id}")
 
     async def post(self):
         await self.finish(f'/tmp/{self.filename}')  # Send filename back
@@ -453,17 +438,13 @@ class DownloadHandler(BaseMixin, tornado.web.RequestHandler):
         remote_file_path = self.get_value("filepath", arg_type="query")
         filename = os.path.basename(remote_file_path)
         LOG.debug(remote_file_path)
-        self.minion_id = self.get_value("minion")
-        LOG.debug(f"minion ID: {self.minion_id}")
-        client_ip = self.get_client_endpoint()[0]
-        gru = GRU.get(client_ip, {})
-        self.args = gru[self.minion_id]["args"]
 
         try:
             self.exec_remote_cmd(cmd=f'cat {remote_file_path}', probe_cmd=f'ls {remote_file_path}')
         except tornado.web.HTTPError:
             self.write(f'Not found: {remote_file_path}')
             await self.finish()
+            return
 
         self.set_header("Content-Type", "application/octet-stream")
         self.set_header("Accept-Ranges", "bytes")

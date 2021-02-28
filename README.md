@@ -23,7 +23,6 @@ REDIS_PORT | Redis port | 6379
 REDIS_DB | Redis database | 0
 GRU_CERT_FILE | Certificate file | ./ssl.crt
 GRU_KEY_FILE | Key file | ./ssl.key
-GRU_MAX_CONN | Gru's max connections | 20
 
 ## Minion
 Name | Description | Default

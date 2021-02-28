@@ -4,7 +4,7 @@ from tornado.iostream import _ERRNO_CONNRESET
 from tornado.util import errno_from_exception
 
 from gru.utils import LOG
-from gru.utils import GRU
+from gru.utils import MINIONS
 
 
 class Minion:
@@ -99,20 +99,13 @@ class Minion:
         self.ssh.close()
         LOG.info('Connection to {}:{} lost'.format(*self.dst_addr))
 
-        clear_minion(self, GRU)
-        LOG.debug(GRU)
+        clear_minion(self)
+        LOG.debug(MINIONS)
 
 
-def clear_minion(minion, GRU):
-    ip = minion.src_addr[0]
-    minions = GRU.get(ip)
-    assert minion.id in minions
-    minions.pop(minion.id)
-
-    if not minions:
-        GRU.pop(ip)
-        if not GRU:
-            GRU.clear()
+def clear_minion(minion):
+    # assert minion.id in MINIONS.keys()
+    MINIONS.pop(minion.id, None)
 
 
 def recycle_minion(minion):

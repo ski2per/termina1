@@ -66,7 +66,7 @@ class BaseMixin:
         :param probe_cmd: Probe command to execute before 'cmd'
         :return: None
         """
-        minion_id = self.get_value('minion', arg_type='cookie')
+        minion_id = self.get_value('minion', arg_type='query')
         LOG.debug(f'[exec_remote_cmd] Minion ID: {minion_id}')
         minion = MINIONS.get(minion_id)
         args = minion['args']
@@ -93,8 +93,6 @@ class BaseMixin:
 
         if arg_type == "query":
             value = self.get_query_argument(name)
-        elif arg_type == "cookie":
-            value = self.get_secure_cookie(name).decode()
         else:
             value = self.get_argument(name)
 
@@ -131,7 +129,6 @@ class StreamUploadMixin(BaseMixin):
         :return: FormData boundary or None if not found
         """
         self.content_type = self.request.headers.get('Content-Type', '')
-        print(self.content_type)
         match = re.match('.*;\sboundary="?(?P<boundary>.*)"?$', self.content_type.strip())
         if match:
             return match.group('boundary')
@@ -156,7 +153,6 @@ class StreamUploadMixin(BaseMixin):
         ptn = re.compile(b'filename="(.*)"')
         m = ptn.search(data)
         if m:
-            print(m.group(1).decode())
             name = m.group(1).decode()
         else:
             name = "untitled"
@@ -190,7 +186,6 @@ class StreamUploadMixin(BaseMixin):
         if not self.boundary:
             self.boundary = self._get_boundary()
             LOG.debug(f"multipart/form-data boundary: {self.boundary}")
-            print(self.boundary)
 
         # Split data with multipart/form-data boundary
         sep = f'--{self.boundary}'
@@ -310,7 +305,7 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         return minion
 
     def get(self):
-        print(MINIONS)
+        LOG.debug(f"MINIONS: {MINIONS}")
         clients = []
         # Get all Minions from Redis when GRU_MODE=gru
         if conf.mode != "term":
@@ -348,7 +343,7 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
             }
             self.loop.call_later(2, recycle_minion, minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
-            self.set_secure_cookie("minion", minion.id)
+            # self.set_secure_cookie("minion", minion.id)
         self.write(self.result)
 
 

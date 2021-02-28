@@ -317,7 +317,7 @@ jQuery(function($){
 
 
     $.ajax({
-      url: '/upload',
+      url: `/upload?minion=${getSession("minion")}`,
       type: "POST",
       data: formData,
       cache: false,

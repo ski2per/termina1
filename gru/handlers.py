@@ -9,7 +9,7 @@ import paramiko
 import tornado.web
 from json.decoder import JSONDecodeError
 from concurrent.futures import ThreadPoolExecutor
-from tornado import iostream
+import tornado
 from tornado.ioloop import IOLoop
 from tornado.process import cpu_count
 from tornado.escape import json_decode
@@ -19,7 +19,6 @@ from gru.minion import Minion, recycle_minion, GRU
 from gru.utils import LOG, run_async_func, find_free_port, get_cache, set_cache, delete_cache, get_redis_keys
 
 DELAY = 3
-DEFAULT_PORT = 22
 
 
 class InvalidValueError(Exception):
@@ -64,7 +63,8 @@ class BaseMixin:
         client_ip = self.get_client_endpoint()[0]
         gru = GRU.get(client_ip, {})
         args = gru[self.minion_id]["args"]
-
+        print("exec_remote_cmd")
+        print(args)
         self.ssh_transport_client = self.create_ssh_client(args)
 
         # self.ssh_transport_client = paramiko.Transport(args[:2])
@@ -96,9 +96,9 @@ class BaseMixin:
         # self.channel = self.ssh_transport_client.open_channel(kind='forwarded-tcpip')
         self.channel.exec_command(cmd)
 
-    def get_value(self, name, type=""):
+    def get_value(self, name, arg_type=""):
 
-        if type == "query":
+        if arg_type == "query":
             value = self.get_query_argument(name)
         else:
             value = self.get_argument(name)
@@ -315,6 +315,7 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         return minion
 
     def get(self):
+        print(GRU)
         clients = []
         # Get all Minions from Redis when GRU_MODE=gru
         if conf.mode != "term":
@@ -357,7 +358,7 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
                 "minion": minion,
                 "args": args
             }
-            self.loop.call_later(conf.delay or DELAY, recycle_minion, minion)
+            self.loop.call_later(2, recycle_minion, minion)
             self.result.update(id=minion.id, encoding=minion.encoding)
             self.set_secure_cookie("minion", minion.id)
         self.write(self.result)
@@ -434,6 +435,9 @@ class UploadHandler(StreamUploadMixin, BaseMixin, tornado.web.RequestHandler):
     def initialize(self, loop):
         super(UploadHandler, self).initialize(loop=loop)
         self.minion_id = self.get_secure_cookie("minion").decode()
+        print("---------debug")
+        print(self.minion_id)
+        LOG.debug(f"Minion ID: {self.minion_id}")
 
     async def post(self):
         await self.finish(f'/tmp/{self.filename}')  # Send filename back
@@ -446,7 +450,7 @@ class DownloadHandler(BaseMixin, tornado.web.RequestHandler):
     async def get(self):
         chunk_size = 1024 * 1024 * 1  # 1 MiB
 
-        remote_file_path = self.get_value("filepath", type="query")
+        remote_file_path = self.get_value("filepath", arg_type="query")
         filename = os.path.basename(remote_file_path)
         LOG.debug(remote_file_path)
         self.minion_id = self.get_value("minion")
@@ -474,14 +478,18 @@ class DownloadHandler(BaseMixin, tornado.web.RequestHandler):
                 self.write(chunk)
                 # Send the chunk to client
                 await self.flush()
-            except iostream.StreamClosedError:
+            except tornado.iostream.StreamClosedError:
                 break
             finally:
                 del chunk
                 await tornado.web.gen.sleep(0.000000001)  # 1 nanosecond
 
         self.ssh_transport_client.close()
-        await self.finish()
+        try:
+            await self.finish()
+        except tornado.iostream.StreamClosedError as err:
+            LOG.error(err)
+            LOG.debug("Maybe user cancelled download")
         LOG.info(f"Download ended: {remote_file_path}")
 
 

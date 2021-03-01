@@ -307,15 +307,7 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
     def get(self):
         LOG.debug(f"MINIONS: {MINIONS}")
         clients = []
-        # Get all Minions from Redis when GRU_MODE=gru
-        if conf.mode != "term":
-            try:
-                clients = [get_cache(k) for k in get_redis_keys()]
-            except (ConnectionRefusedError, redis.exceptions.ConnectionError) as err:
-                LOG.error(err)
-                self.write("Oops!")
-                return
-        self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
+        self.render('index.html', mode=conf.mode)
 
     async def post(self):
         args = self.get_args()

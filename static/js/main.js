@@ -110,7 +110,7 @@ jQuery(function($){
   }
 
 
-  function ajaxCallback(resp) {
+  function connectCallback(resp) {
     // Enable login button
     minionLoginBtn.attr('disabled', false);
 
@@ -123,6 +123,11 @@ jQuery(function($){
         msg = resp.responseJSON;
 
     if (!msg.id) {
+      err = msg.status.toLowerCase();
+      if (err.startsWith('unable to connect to localhost')){
+        // Encounter dangling Minion, reload clients
+        loadClients();
+      }
       setMsg(msg.status);
       return;
     } else {
@@ -243,7 +248,10 @@ jQuery(function($){
         type: 'post',
         // data: JSON.stringify({"port": port}),
         data: JSON.stringify(Object.fromEntries(data)),
-        complete: ajaxCallback,
+        complete: connectCallback,
+        error: function(){
+          console.log("wtf");
+        },
         cache: false,
         contentType: false,
         processData: false
@@ -252,23 +260,40 @@ jQuery(function($){
     document.getElementById('login-dialog').close();
   } // connect function
 
-  // function upload(event) {
-  //   event.preventDefault();
+  function loadClients() {
+    $.ajax({
+      url: '/clients',
+      type: 'GET',
 
-  //   reader = new FileReader();
-  //   file = document.querySelector("#upload").files[0];
+    }).done(function(resp){
+      clients = JSON.parse(resp);
+      $("#clientsNO").text(clients.length);
 
-  //   upload_chunk(0);
-  // }
-  // function upload_chunk(start) {
-  //   var next_slice = start + slice_size + 1;
-  //   var blob = file.slice( start, next_slice );
-    
-  //   reader.onloadend = function(event) {
+      tbody = "";
+      clients.forEach(function(client){
+        console.log(client);
+        tbody += `
+        <tr>
+          <td>${client.name}</td>
+          <td>${client.ip}</td>
+          <td>${client.publicip}</td>
+          <td>${client.port}</td>
+          <td id="connect">
+            <a class="link" data-value="${ client.port }" href="javascript: void(0)">Connect</a>
+          </td>
+        </tr>
+        `
+      })
+      $("#clientsTbody").html(tbody);
 
-  //   }
-  // }
+    }).fail(function(resp){
+      console.log('Load clients failed');
+      console.log(resp.status);
+      console.log(resp);
+    });
+  }
 
+  loadClients();
 
   // ====================================
   // Setup Event Listeners
@@ -280,9 +305,10 @@ jQuery(function($){
     let result = validateFormData(minionLoginFormID, ["username", "password"]);
     if (result.error) {
       setMsg(result.error);
+
     } else {
       connect(minionLoginFormID);
-      console.log(result);
+      console.log(`minion login result: ${result}`);
     }
   });
   websshLoginBtn.click(function(event){
@@ -400,7 +426,7 @@ jQuery(function($){
     return "bye";
   });
 
-  $("#connect a").click(function(event){
+  $(document).on('click', '#connect a', function(event){
     var port = $(this).data("value");
     console.log(port)
     // Set port filed value
@@ -410,4 +436,5 @@ jQuery(function($){
     $('#login-dialog').css('top',event.pageY);
     document.getElementById('login-dialog').showModal();
   });
+
 });

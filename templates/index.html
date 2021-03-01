@@ -12,7 +12,7 @@
   <body>
     <!--Minion Login dialog-->
     <dialog class="nes-dialog" id="login-dialog">
-      <form id="minion-login-form" action="" method="post" enctype="multipart/form-data" {% if debug %} novalidate{% end %}>
+      <form id="minion-login-form" action="" method="post" enctype="multipart/form-data">
         <div class="row">
           <div class="col">
             <!-- <label for="username">Username</label> -->
@@ -39,7 +39,7 @@
       <!-- mode can be set by environment GRU_MODE -->
       {% if mode == "gru" or mode == "all" %}
       <div class="col">
-          <h2>Online client:</h2>
+          <h2>Online clients(<span id='clientsNO'>0</span>):</h2>
           <table class="ted-table">
           <thead>
             <tr>
@@ -50,28 +50,8 @@
                 <th>Action</th>
             </tr>
           </thead>
-          <tbody>
-            {% for client in clients %}
-            <tr>
-                <td>
-                    {{ client["name"] }}
-                </td>
-                <td>
-                    {{ client["ip"] }}
-                </td>
-                <td>
-                    {{ client["publicip"] }}
-                </td>
-                <td>
-                    {{ client["port"] }}
-                </td>
-                <td id="connect">
-                    <a class="link" data-value="{{ client['port'] }}" href="javascript: void(0)">Connect</a>
-                    <!-- <h1 class="link" data-value="{{ client['port'] }}">Connect</h1> -->
-                </td>
-            </tr>
-            {% end %}
-            </tbody>
+          <tbody id="clientsTbody">
+          </tbody>
           </table>
         </div><!--Minions-->
         {% end %}
@@ -80,7 +60,7 @@
       <div class="col">
         <div class="nes-container with-title">
           <p class="title">Web Terminal - VERSION</p>
-          <form id="webssh-login-form" action="" method="post" enctype="multipart/form-data"{% if debug %} novalidate{% end %}>
+          <form id="webssh-login-form" action="" method="post" enctype="multipart/form-data">
             <div class="row">
               <div class="col">
                 <label for="Hostname">Hostname</label>

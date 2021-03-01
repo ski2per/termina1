@@ -313,7 +313,7 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
                 clients = [get_cache(k) for k in get_redis_keys()]
             except (ConnectionRefusedError, redis.exceptions.ConnectionError) as err:
                 LOG.error(err)
-                self.write("Oops~")
+                self.write("Oops!")
                 return
         self.render('index.html', debug=self.debug, clients=clients, mode=conf.mode)
 
@@ -497,5 +497,4 @@ class HostsHandler(tornado.web.RequestHandler):
 class NotFoundHandler(tornado.web.RequestHandler):
     def prepare(self):
         LOG.info("In NotFoundHandler")
-        # raise tornado.web.HTTPError(status_code=404, reason="Oops!")
-        self.render('40x.html')
+        raise tornado.web.HTTPError(status_code=404, reason="Oops!")

@@ -7,13 +7,12 @@ services:
     environment:
       #- DEBUG=true
       - SSH_USERS=ted:1000:1000:/bin/bash
-      #- TERM_CERT_FILE=/ssl.crt
-      #- TERM_KEY_FILE=/ssl.key
-      - TERM_MAX_CONN=40
+      #- GRU_CERT_FILE=/ssl.crt
+      #- GRU_KEY_FILE=/ssl.key
       - REDIS_HOST=redis
       - GRU_MODE=gru
     ports: 
-      #- "4433:4433"
+      #- "8443:8443"
       - "60022:22"
       - "8000:8000"
     volumes:

@@ -28,7 +28,7 @@ RUN sed -i s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g /etc/apk/repositories \
     && cp -a /etc/ssh /etc/ssh.cache \
     && rm -rf /var/cache/apk/*
 
-EXPOSE 22 8000 4433
+EXPOSE 22 8000 8443
 #EXPOSE 4433
 #ENTRYPOINT ["python", "main.py", "--address=0.0.0.0"]
 

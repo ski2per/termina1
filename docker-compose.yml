@@ -7,6 +7,8 @@ services:
     environment:
       #- DEBUG=true
       - SSH_USERS=ted:1000:1000:/bin/bash
+      - TCP_FORWARDING=true
+      - SSH_ENABLE_PASSWORD_AUTH=true
       #- GRU_CERT_FILE=/ssl.crt
       #- GRU_KEY_FILE=/ssl.key
       - REDIS_HOST=redis

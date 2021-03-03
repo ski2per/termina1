@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -40,6 +42,8 @@ func init() {
 		logLvl = log.InfoLevel
 	}
 	log.SetLevel(logLvl)
+	// Skip TLS secure verify
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 }
 
 func main() {

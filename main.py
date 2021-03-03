@@ -2,8 +2,9 @@ import os.path
 import tornado.web
 import tornado.ioloop
 from gru.conf import conf
-from gru.handlers import IndexHandler, WSHandler, UploadHandler, DownloadHandler, PortHandler, RegisterHandler, DeregisterHandler, HostsHandler, NotFoundHandler
-from gru.utils import get_ssl_context
+from gru.handlers import IndexHandler, WSHandler, UploadHandler, DownloadHandler, PortHandler, RegisterHandler, \
+    DeregisterHandler, HostsHandler, NotFoundHandler
+from gru.utils import get_ssl_context, LOG
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 conf.base_dir = BASE_DIR
@@ -16,11 +17,16 @@ class Term1nal(tornado.web.Application):
             (r"/ws", WSHandler, dict(loop=loop)),
             (r"/upload", UploadHandler, dict(loop=loop)),
             (r"/download", DownloadHandler, dict(loop=loop)),
-            (r"/port", PortHandler),
-            (r"/register", RegisterHandler),
-            (r"/deregister/([^/]+)", DeregisterHandler),
-            (r"/clients", HostsHandler),
         ]
+        if conf.mode in ['gru', 'all']:
+            handlers.extend(
+                [
+                    (r"/port", PortHandler),
+                    (r"/register", RegisterHandler),
+                    (r"/deregister/([^/]+)", DeregisterHandler),
+                    (r"/clients", HostsHandler),
+                ]
+            )
 
         settings = dict(
             websocket_ping_interval=conf.ws_ping,
@@ -38,6 +44,7 @@ class Term1nal(tornado.web.Application):
 
 
 def main():
+    LOG.info(f'Gru mode: {conf.mode}')
     loop = tornado.ioloop.IOLoop.current()
     app = Term1nal(loop=loop)
     ssl_ctx = get_ssl_context(conf)

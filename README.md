@@ -9,6 +9,17 @@ Gru: a simple web terminal written in Python and JavaScript, which contains thes
 
 Minion: a ssh client to establish reversed SSH tunnel to Gru
 
+# How To Run
+## Build Gru(Docker image)
+```
+make gru
+```
+
+## Build Minion(Binary)
+```
+make minion
+```
+
 # Environment
 ## GRU
 Name | Description | Default
@@ -17,7 +28,7 @@ SSH_USERS | SSH users to be added(e.g.: SSH_USERS=www:48:48,admin:1000:1000:/bin
 GRU_MODE | Gru's mode: term, gru or all | term
 GRU_HOST | Gru's listening host | 0.0.0.0
 GRU_PORT | Gru's listening port | 8000
-GRU_SSL_PORT | Gru's SSH port | 4433
+GRU_SSL_PORT | Gru's SSH port | 8443
 REDIS_HOST | Redis host | localhost
 REDIS_PORT | Redis port | 6379
 REDIS_DB | Redis database | 0
@@ -37,9 +48,11 @@ MINION_SSH_PORT | Minion's local ssh port | 22
 LOG_LEVEL | Minion's logging level | debug
 MINION_ID | Identification of Minion |
 MINION_PUBLIC_IP | Minion's public IP if any |
+
 ## Misc
 * Go 1.14
 * Python 3.7
+* Dev/Test under Ubuntu
 
 
 # Third-party Libraries
@@ -63,6 +76,6 @@ All mode
 ![all mode](docs/all-mode.jpg)
 
 # Issues
-* None(currently) 
+* None(currently:P) 
 
 

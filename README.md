@@ -14,6 +14,8 @@ Minion: a ssh client to establish reversed SSH tunnel to Gru
 ```
 make gru
 ```
+Then use `docker-compose.yml` to run Gru.
+Gru's SSH credential can be initialize by `entrypoind.d/setpasswd.sh`.
 
 ## Build Minion(Binary)
 ```

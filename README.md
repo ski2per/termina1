@@ -9,7 +9,7 @@ Gru: a simple web terminal written in Python and JavaScript, which contains thes
 
 Minion: a ssh client to establish reversed SSH tunnel to Gru
 
-# How To Run
+# Quick Start
 ## Build Gru(Docker image)
 ```
 make gru

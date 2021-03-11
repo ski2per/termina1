@@ -146,7 +146,6 @@ jQuery(function($){
       } catch (EncodingError) {
         console.log(`Unknown encoding: ${msg.encoding}`);
       }
-      
     }
 
     // Prepare websocket
@@ -293,7 +292,10 @@ jQuery(function($){
     });
   }
 
-  loadClients();
+  // Tricks to detect Gru mode
+  if($('#clientsNo').length) {
+    loadClients();
+  }
 
   // ====================================
   // Setup Event Listeners

@@ -257,7 +257,8 @@ class StreamUploadMixin(BaseMixin):
 
 
 class IndexHandler(BaseMixin, tornado.web.RequestHandler):
-    executor = ThreadPoolExecutor(max_workers=cpu_count() * 6)
+    executor = ThreadPoolExecutor()
+    # executor = ThreadPoolExecutor(max_workers=cpu_count() * 6)
 
     def initialize(self, loop):
         super(IndexHandler, self).initialize(loop=loop)
@@ -280,8 +281,10 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         return args
 
     def get_server_encoding(self, ssh):
+        print(ssh)
         try:
             _, stdout, _ = ssh.exec_command("locale charmap")
+            print(f"-------:{stdout.read()}")
         except paramiko.SSHException as err:
             LOG.error(str(err))
         else:
@@ -298,10 +301,18 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         LOG.info('Connecting to {}:{}'.format(*ssh_endpoint))
 
         term = self.get_argument('term', '') or 'xterm'
+        print(f"term: {term}")
         shell_channel = ssh.invoke_shell(term=term)
+        print(shell_channel)
+        print("here")
         shell_channel.setblocking(0)
+        print("here2")
         minion = Minion(self.loop, ssh, shell_channel, ssh_endpoint)
+        print("here3")
         minion.encoding = conf.encoding if conf.encoding else self.get_server_encoding(ssh)
+        print(conf.encoding)
+        print("here4")
+        print(minion)
         return minion
 
     def get(self):

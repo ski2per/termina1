@@ -23,19 +23,12 @@ class InvalidValueError(Exception):
 
 
 class BaseMixin:
-    # channel = None
-    # args = None
-    # ssh_transport_client = None
-    # filename = ''
-    # stream_idx = 0
-
     def initialize(self, loop):
         self.context = self.request.connection.context
         self.loop = loop
-
         self.channel = None
-        self.args = None
         self.stream_idx = 0
+        self.ssh_transport_client = None
 
     @staticmethod
     def create_ssh_client(args) -> paramiko.SSHClient:
@@ -125,16 +118,19 @@ class StreamUploadMixin(BaseMixin):
         else:
             return None
 
-    def _partition_chunk(self, chunk: bytes) -> (bytes, bytes):
-        # A chunk has the format below:
-        # b'\r\nContent-Disposition: form-data; name="upload"; \
-        # filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n\r\nworld\r\n\r\n'
-        #
-        # after partition, this will return:
-        # 'form_data_info': b'\r\nContent-Disposition: form-data; name="upload"; \
-        # filename="hello.txt"\r\nContent-Type: text/plain'
-        #
-        # 'raw': b'hello\r\n\r\nworld\r\n\r\n'
+    @staticmethod
+    def _partition_chunk(chunk: bytes) -> (bytes, bytes):
+        """
+        A chunk has the format below:
+        b'\r\nContent-Disposition: form-data; name="upload"; \
+        filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n\r\nworld\r\n\r\n'
+
+        after partition, this will return:
+        'form_data_info': b'\r\nContent-Disposition: form-data; name="upload"; \
+        filename="hello.txt"\r\nContent-Type: text/plain'
+
+        'raw': b'hello\r\n\r\nworld\r\n\r\n'
+        """
         form_data_info, _, raw = chunk.partition(b"\r\n\r\n")
         return form_data_info, raw
 
@@ -152,7 +148,7 @@ class StreamUploadMixin(BaseMixin):
         else:
             name = "untitled"
         # Replace spaces with underscore
-        return re.sub('\s+', '_', name)
+        return re.sub(r'\s+', '_', name)
 
     @staticmethod
     def _trim_trailing_carriage_return(chunk: bytes) -> bytes:
@@ -282,7 +278,6 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         print(ssh)
         try:
             _, stdout, _ = ssh.exec_command("locale charmap")
-            print(f"-------:{stdout.read()}")
         except paramiko.SSHException as err:
             LOG.error(str(err))
         else:

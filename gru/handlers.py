@@ -4,7 +4,6 @@ import socket
 import struct
 import os.path
 import weakref
-import redis
 import paramiko
 import tornado.web
 from json.decoder import JSONDecodeError
@@ -17,8 +16,6 @@ from tornado.escape import json_decode
 from gru.conf import conf
 from gru.minion import Minion, recycle_minion, MINIONS
 from gru.utils import LOG, run_async_func, find_free_port, get_cache, set_cache, delete_cache, get_redis_keys
-
-DELAY = 3
 
 
 class InvalidValueError(Exception):
@@ -38,19 +35,16 @@ class BaseMixin:
 
         self.channel = None
         self.args = None
-        self.ssh_transport_client = None
-        self.filename = ''
         self.stream_idx = 0
 
-        # self.ssh_term_client = None
-
-    def create_ssh_client(self, args) -> paramiko.SSHClient:
+    @staticmethod
+    def create_ssh_client(args) -> paramiko.SSHClient:
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.client.MissingHostKeyPolicy)
         try:
             ssh.connect(*args, allow_agent=False, look_for_keys=False, timeout=conf.timeout)
         except socket.error:
-            raise ValueError('Unable to connect to {}:{}'.format(*args[:2]))
+            raise ValueError('Unable to connect to {}:{}'.format(*args[:1]))
         except (paramiko.AuthenticationException, paramiko.ssh_exception.AuthenticationException):
             raise ValueError('Authentication failed.')
         except EOFError:
@@ -82,11 +76,7 @@ class BaseMixin:
                 raise tornado.web.HTTPError(404, "Not found")
 
         transport = self.ssh_transport_client.get_transport()
-        # username, password = args[-2:]
-        # self.ssh_transport_client.connect(hostkey=None, username=username, password=password)
         self.channel = transport.open_channel(kind='session')
-        # self.channel = transport.open_channel(kind='forwarded-tcpip')
-        # self.channel = self.ssh_transport_client.open_channel(kind='forwarded-tcpip')
         self.channel.exec_command(cmd)
 
     def get_value(self, name, arg_type=""):
@@ -137,9 +127,13 @@ class StreamUploadMixin(BaseMixin):
 
     def _partition_chunk(self, chunk: bytes) -> (bytes, bytes):
         # A chunk has the format below:
-        # b'\r\nContent-Disposition: form-data; name="upload"; filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n\r\nworld\r\n\r\n'
+        # b'\r\nContent-Disposition: form-data; name="upload"; \
+        # filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n\r\nworld\r\n\r\n'
+        #
         # after partition, this will return:
-        # 'form_data_info': b'\r\nContent-Disposition: form-data; name="upload"; filename="hello.txt"\r\nContent-Type: text/plain'
+        # 'form_data_info': b'\r\nContent-Disposition: form-data; name="upload"; \
+        # filename="hello.txt"\r\nContent-Type: text/plain'
+        #
         # 'raw': b'hello\r\n\r\nworld\r\n\r\n'
         form_data_info, _, raw = chunk.partition(b"\r\n\r\n")
         return form_data_info, raw
@@ -148,7 +142,8 @@ class StreamUploadMixin(BaseMixin):
         trimmed_chunk = self._trim_trailing_carriage_return(chunk)
         self.channel.sendall(trimmed_chunk)
 
-    def _extract_filename(self, data: bytes) -> str:
+    @staticmethod
+    def _extract_filename(data: bytes) -> str:
         LOG.debug(data)
         ptn = re.compile(b'filename="(.*)"')
         m = ptn.search(data)
@@ -177,7 +172,9 @@ class StreamUploadMixin(BaseMixin):
 
     async def data_received(self, data):
         # A simple multipart/form-data
-        # b'------WebKitFormBoundarysiqXYmhALsFpsMuh\r\nContent-Disposition: form-data; name="upload"; filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\nhello\r\n\r\nworld\r\n\r\n------WebKitFormBoundarysiqXYmhALsFpsMuh--\r\n'
+        # b'------WebKitFormBoundarysiqXYmhALsFpsMuh\r\nContent-Disposition: form-data; name="upload";
+        # filename="hello.txt"\r\nContent-Type: text/plain\r\n\r\n
+        # hello\r\n\r\nworld\r\n\r\n------WebKitFormBoundarysiqXYmhALsFpsMuh--\r\n'
         """
 
         :param data:
@@ -258,6 +255,7 @@ class StreamUploadMixin(BaseMixin):
 
 class IndexHandler(BaseMixin, tornado.web.RequestHandler):
     executor = ThreadPoolExecutor()
+
     # executor = ThreadPoolExecutor(max_workers=cpu_count() * 6)
 
     def initialize(self, loop):
@@ -296,28 +294,18 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         return 'utf-8'
 
     def create_minion(self, args):
-        ssh = self.ssh_term_client
         ssh_endpoint = args[:2]
         LOG.info('Connecting to {}:{}'.format(*ssh_endpoint))
 
         term = self.get_argument('term', '') or 'xterm'
-        print(f"term: {term}")
-        shell_channel = ssh.invoke_shell(term=term)
-        print(shell_channel)
-        print("here")
+        shell_channel = self.ssh_term_client.invoke_shell(term=term)
         shell_channel.setblocking(0)
-        print("here2")
-        minion = Minion(self.loop, ssh, shell_channel, ssh_endpoint)
-        print("here3")
-        minion.encoding = conf.encoding if conf.encoding else self.get_server_encoding(ssh)
-        print(conf.encoding)
-        print("here4")
-        print(minion)
+        minion = Minion(self.loop, self.ssh_term_client, shell_channel, ssh_endpoint)
+        minion.encoding = conf.encoding if conf.encoding else self.get_server_encoding(self.ssh_term_client)
         return minion
 
     def get(self):
         LOG.debug(f"MINIONS: {MINIONS}")
-        clients = []
         self.render('index.html', mode=conf.mode)
 
     async def post(self):
@@ -332,7 +320,7 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
                 paramiko.ssh_exception.AuthenticationException) as err:
             LOG.error(err)
             # Delete dangling cache
-            if str(err).lower().startswith("unable to"):
+            if str(err).lower().startswith("unable to") and conf.mode != "term":
                 delete_cache(str(args[1]))
 
             self.result.update(status=str(err))

@@ -7,6 +7,7 @@ jQuery(function($){
       toolbar = $('#toolbar'),
       menu = $('#menu'),
       progress = $("#progress"),
+      clean = $("#clean"),
       cell = {},
       titleElement = document.querySelector('title'),
       customizedFont = "Hack",  // Named by style.css
@@ -31,6 +32,26 @@ jQuery(function($){
     el.value = term.getSelection();
     el.select();
     document.execCommand('copy');
+  }
+
+  function fillClientsTable(clients) {
+    $("#onlineCli").text(clients.length);
+
+    tbody = "";
+    clients.forEach(function(client){
+      tbody += `
+      <tr>
+        <td>${client.name}</td>
+        <td>${client.ip}</td>
+        <td>${client.publicip}</td>
+        <td>${client.port}</td>
+        <td id="connect">
+          <a class="link" data-value="${ client.port }" href="javascript: void(0)">Connect</a>
+        </td>
+      </tr>
+      `
+    })
+    $("#clientsTbody").html(tbody);
   }
 
   // Maybe cancel this after using direct upload/download
@@ -266,24 +287,7 @@ jQuery(function($){
 
     }).done(function(resp){
       clients = JSON.parse(resp);
-      $("#clientsNO").text(clients.length);
-
-      tbody = "";
-      clients.forEach(function(client){
-        console.log(client);
-        tbody += `
-        <tr>
-          <td>${client.name}</td>
-          <td>${client.ip}</td>
-          <td>${client.publicip}</td>
-          <td>${client.port}</td>
-          <td id="connect">
-            <a class="link" data-value="${ client.port }" href="javascript: void(0)">Connect</a>
-          </td>
-        </tr>
-        `
-      })
-      $("#clientsTbody").html(tbody);
+      fillClientsTable(clients);
 
     }).fail(function(resp){
       console.log('Load clients failed');
@@ -292,8 +296,8 @@ jQuery(function($){
     });
   }
 
-  // Tricks to detect Gru mode
-  if($('#clientsNo').length) {
+  // Detect Gru mode by getting element
+  if(document.getElementById('onlineCli')) { 
     loadClients();
   }
 
@@ -430,7 +434,7 @@ jQuery(function($){
 
   $(document).on('click', '#connect a', function(event){
     var port = $(this).data("value");
-    console.log(port)
+    console.log(`Connect to port: ${port}`);
     // Set port filed value
     $('#port').val(port);
 
@@ -439,4 +443,19 @@ jQuery(function($){
     document.getElementById('login-dialog').showModal();
   });
 
-});
+  clean.click(function(){
+    $.ajax({
+      url: '/clean',
+      type: 'GET',
+
+    }).done(function(resp){
+      clients = JSON.parse(resp);
+      fillClientsTable(clients);
+    }).fail(function(resp){
+      console.log('Clean clients failed');
+      console.log(resp.status);
+      console.log(resp);
+    });
+  });
+
+}); // jQuery

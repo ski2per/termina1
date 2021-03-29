@@ -15,7 +15,8 @@ from tornado.escape import json_decode
 
 from gru.conf import conf
 from gru.minion import Minion, recycle_minion, MINIONS
-from gru.utils import LOG, run_async_func, find_free_port, get_cache, set_cache, delete_cache, get_redis_keys
+from gru.utils import LOG, run_async_func, find_free_port, get_cache, set_cache, delete_cache, get_redis_keys, \
+    is_port_open
 
 
 class InvalidValueError(Exception):
@@ -32,12 +33,14 @@ class BaseMixin:
 
     @staticmethod
     def create_ssh_client(args) -> paramiko.SSHClient:
+        print(f"[create_ssh_client]args: {args}")
         ssh = paramiko.SSHClient()
         ssh.set_missing_host_key_policy(paramiko.client.MissingHostKeyPolicy)
         try:
             ssh.connect(*args, allow_agent=False, look_for_keys=False, timeout=conf.timeout)
         except socket.error:
-            raise ValueError('Unable to connect to {}:{}'.format(*args[:1]))
+            print(args[:2])
+            raise ValueError('Unable to connect to {}:{}'.format(*args[:2]))
         except (paramiko.AuthenticationException, paramiko.ssh_exception.AuthenticationException):
             raise ValueError('Authentication failed.')
         except EOFError:
@@ -275,7 +278,6 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         return args
 
     def get_server_encoding(self, ssh):
-        print(ssh)
         try:
             _, stdout, _ = ssh.exec_command("locale charmap")
         except paramiko.SSHException as err:
@@ -311,8 +313,9 @@ class IndexHandler(BaseMixin, tornado.web.RequestHandler):
         except InvalidValueError as err:
             # Catch error in self.get_args()
             raise tornado.web.HTTPError(400, str(err))
-        except (ValueError, paramiko.SSHException,
-                paramiko.ssh_exception.AuthenticationException) as err:
+        except (ValueError, paramiko.SSHException, paramiko.ssh_exception.SSHException,
+                paramiko.ssh_exception.AuthenticationException, socket.timeout) as err:
+            LOG.error("====================")
             LOG.error(err)
             # Delete dangling cache
             if str(err).lower().startswith("unable to") and conf.mode != "term":
@@ -478,6 +481,18 @@ class HostsHandler(tornado.web.RequestHandler):
     async def get(self):
         hosts = [get_cache(key) for key in get_redis_keys()]
         self.write(json.dumps(hosts))
+
+
+class CleanHandler(tornado.web.RequestHandler):
+    async def get(self):
+        hosts = [get_cache(key) for key in get_redis_keys()]
+        actual_hosts = []
+        for host in hosts:
+            if is_port_open(host["port"]):
+                actual_hosts.append(host)
+            else:
+                delete_cache(host["port"])
+        self.write(json.dumps(actual_hosts))
 
 
 class NotFoundHandler(tornado.web.RequestHandler):

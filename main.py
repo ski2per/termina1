@@ -3,7 +3,7 @@ import tornado.web
 import tornado.ioloop
 from gru.conf import conf
 from gru.handlers import IndexHandler, WSHandler, UploadHandler, DownloadHandler, PortHandler, RegisterHandler, \
-    DeregisterHandler, HostsHandler, NotFoundHandler
+    DeregisterHandler, HostsHandler, NotFoundHandler, CleanHandler
 from gru.utils import get_ssl_context, LOG
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -25,6 +25,7 @@ class Term1nal(tornado.web.Application):
                     (r"/register", RegisterHandler),
                     (r"/deregister/([^/]+)", DeregisterHandler),
                     (r"/clients", HostsHandler),
+                    (r"/clean", CleanHandler),
                 ]
             )
 

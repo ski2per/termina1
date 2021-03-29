@@ -140,3 +140,11 @@ def delete_cache(cache_key: str):
 def flush_all_caches():
     with conn2redis(host=conf.redis_host, port=conf.redis_port, db=conf.redis_db) as r:
         r.flushall()
+
+
+def is_port_open(port, host="localhost") -> bool:
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        if sock.connect_ex((host, port)) == 0:
+            return True
+        else:
+            return False

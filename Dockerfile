@@ -18,8 +18,8 @@ RUN sed -i s/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g /etc/apk/repositories \
         openssl-dev \
     && pip3 install -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com -r requirements.txt \
     && apk del .build-deps \
-    && pip3 install -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com ansible \
-    && ln -sf /ansible /etc/ansible \
+    #&& pip3 install -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com ansible \
+    #&& ln -sf /ansible /etc/ansible \
     && deluser $(getent passwd 33 | cut -d: -f1) \
     && delgroup $(getent group 33 | cut -d: -f1) 2>/dev/null || true \
     && mkdir -p ~root/.ssh /etc/authorized_keys && chmod 700 ~root/.ssh/ \

@@ -1,5 +1,0 @@
-{
-  "registry-mirrors": ["https://pc7pbkyu.mirror.aliyuncs.com"],
-  "insecure-registries" : ["docker.cetcxl.local", "172.16.101.214:5000"],
-  "log-opts": {"max-size": "1024m", "max-file": "5"}
-}

@@ -1,3 +1,4 @@
+# Hosts generate code for Ansible(Not used currently)
 import json
 import requests
 

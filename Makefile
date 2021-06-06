@@ -31,3 +31,7 @@ push: gru
 minion: $(shell find . -type f  -name '*.go')
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o dist/minion \
 	  -ldflags '-s -w -X github.com/ski2per/gru/minion.Version=$(TAG) -extldflags "-static"'
+
+minion-darwin: $(shell find . -type f  -name '*.go')
+	GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -o dist/minion \
+	  -ldflags '-s -w -X github.com/ski2per/gru/minion.Version=$(TAG) -extldflags "-static"'

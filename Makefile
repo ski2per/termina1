@@ -5,7 +5,7 @@ REGISTRY?=${REGISTRY_PREFIX}gru
 VERSION_FILE=templates/index.html
 
 # Default tag and architecture. Can be overridden
-TAG?=$(shell git describe --tags --dirty)
+TAG?=$(shell git describe --tags --dirty --always)
 ifeq ($(TAG),)
 	TAG=latest
 endif

@@ -1,4 +1,4 @@
-module github.com/ski2per/gru
+module github.com/ski2per/oldgru
 
 go 1.14
 
